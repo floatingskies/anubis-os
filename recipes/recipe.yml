@@ -4,43 +4,34 @@
 
 name: anubis-os
 description: GNOME-based gaming & security-focused immutable Fedora (Universal Blue)
-base-image: ghcr.io/ublue-os/silverblue-main   # GNOME ostree base
+base-image: ghcr.io/ublue-os/silverblue-main
 image-version: "44"
 
 modules:
 
   # ---------------------------------------------------------------------
-  # 1. Freeworld codecs & drivers
-  #    RPM Fusion is already enabled in the ublue-os/silverblue-main base
-  #    image. However the base image also ships a `fedora-multimedia` repo
-  #    from negativo17.org which 404s on Fedora 42 and causes every dnf
-  #    operation to fail. Disable it first, then install from RPM Fusion.
+  # 1. Remover repo negativo17 quebrado no Fedora 44.
+  #    RPM Fusion já vem habilitado na base image — ffmpeg instala direto.
   # ---------------------------------------------------------------------
   - type: script
     snippets:
-      # The base image ships a negativo17 fedora-multimedia repo that 404s
-      # on Fedora 42. Remove it, then install the RPM Fusion release RPMs
-      # directly by URL so their repos are available for all later steps.
-      - echo 'cache-bust-2'
       - grep -rl 'negativo17.org' /etc/yum.repos.d/ | xargs rm -f
-      - VER=$(rpm -E %fedora) && rpm-ostree install --idempotent https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${VER}.noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${VER}.noarch.rpm
 
   - type: rpm-ostree
     install:
       - ffmpeg
 
   # ---------------------------------------------------------------------
-  # 2. Automatic hardware enablement
-  #    fwupd handles firmware updates automatically.
+  # 2. Hardware geral
   # ---------------------------------------------------------------------
   - type: rpm-ostree
     install:
-      - fwupd                 # automatic firmware updates (BIOS/EC/peripheral)
-      - NetworkManager        # already in base, kept explicit for clarity
-      - bluez                 # Bluetooth auto-detect/pairing
+      - fwupd
+      - NetworkManager
+      - bluez
 
   # ---------------------------------------------------------------------
-  # 3. SteamOS-style gaming
+  # 3. Gaming
   # ---------------------------------------------------------------------
   - type: rpm-ostree
     install:
@@ -51,27 +42,22 @@ modules:
       - wine
       - winetricks
       - corectrl
-      - fastfetch        # branded system-info banner, see modules 7/8
 
   - type: default-flatpaks@v1
     notify: true
     system:
       install:
-        - net.davidotek.pupgui2          # ProtonUp-Qt
+        - net.davidotek.pupgui2
         - com.valvesoftware.Steam
         - com.heroicgameslauncher.hgl
-        # --- Creative tools ---
         - org.gimp.GIMP
         - org.inkscape.Inkscape
         - com.github.PintaProject.Pinta
-        # --- Office ---
         - org.onlyoffice.desktopeditors
-        # --- Browser (default) ---
         - com.brave.Browser
 
   # ---------------------------------------------------------------------
-  # 4. Everyday user security (NOT pentesting tools — defensive/privacy
-  #    tools only, suitable for a general-purpose gaming desktop).
+  # 4. Everyday user security
   # ---------------------------------------------------------------------
   - type: rpm-ostree
     install:
@@ -82,8 +68,7 @@ modules:
       - firejail
 
   # ---------------------------------------------------------------------
-  # 5. GNOME desktop extensions — dash-to-dock, AppIndicator/legacy tray,
-  #    Blur My Shell, a logo/app menu (Logo Menu), Caffeine, PaperWM.
+  # 5. GNOME extensions
   # ---------------------------------------------------------------------
   - type: gnome-extensions
     install:
@@ -93,23 +78,14 @@ modules:
       - Logo Menu
       - Caffeine
       - PaperWM
-    # NOTE: this module only installs the extension files — it does not
-    # enable them. Enabling is done via a dconf default override shipped
-    # by the `files` module below (see
-    # files/system/etc/dconf/db/local.d/00-anubis-extensions and the
-    # matching dconf-update script).
 
   # ---------------------------------------------------------------------
-  # 6. Homebrew (brew-oci layer)
+  # 6. Homebrew
   # ---------------------------------------------------------------------
   - type: brew
 
   # ---------------------------------------------------------------------
-  # 7. Wallpapers, dconf defaults, ujust files, first-boot wallpaper unit,
-  #    Anubis logo (icon theme + pixmaps, used by the os-release LOGO=
-  #    field below) and fastfetch branding (ASCII logo + config, see
-  #    files/system/usr/share/fastfetch/ and the alias in
-  #    files/system/etc/profile.d/anubis-fastfetch.sh).
+  # 7. Arquivos do sistema (wallpapers, dconf, ujust, units)
   # ---------------------------------------------------------------------
   - type: files
     files:
@@ -123,40 +99,6 @@ modules:
       - enable-gnome-extensions-defaults.sh
 
   # ---------------------------------------------------------------------
-  # 8. Enable the first-boot unit that seeds the fastfetch config into any
-  #    pre-existing user home directories (skel only covers brand-new
-  #    accounts created after this image is built — see
-  #    files/systemd/system/anubis-fastfetch-firstboot.service and
-  #    files/system/usr/lib/anubis-os/first-boot/install-fastfetch-config.sh).
-  # ---------------------------------------------------------------------
-  - type: systemd
-    system:
-      enabled:
-        - anubis-fastfetch-firstboot.service
-
-  # ---------------------------------------------------------------------
-  # 9. Branding — rename from "Fedora Silverblue" to "Anubis Linux 44" in
-  #    /etc/os-release (read by `gnome-control-center` About page, neofetch/
-  #    fastfetch, and most "what distro is this" scripts).
-  #    NOTE: deliberately NOT touching ID/ID_LIKE — the BlueBuild docs warn
-  #    that changing ID can break COPR package resolution during the build
-  #    (RPM Fusion, akmods, etc. all key off it). Leaving ID=fedora keeps
-  #    every earlier module in this recipe working, and is also why this
-  #    module is placed near the very end of the build.
-  #    LOGO=anubis-logo points at the icon installed by the `files` module
-  #    above, at /usr/share/icons/hicolor/{scalable,256x256}/apps/anubis-logo.*
-  # ---------------------------------------------------------------------
-  - type: os-release
-    properties:
-      NAME: "Anubis Linux"
-      PRETTY_NAME: "Anubis Linux 44"
-      VARIANT: "Anubis Linux"
-      VARIANT_ID: anubis-os
-      LOGO: anubis-logo
-      HOME_URL: "https://github.com/floatingskies/anubis-os"
-      DEFAULT_HOSTNAME: "anubis"
-
-  # ---------------------------------------------------------------------
-  # 10. Signing
+  # 8. Signing
   # ---------------------------------------------------------------------
   - type: signing

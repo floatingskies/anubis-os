@@ -1,16 +1,6 @@
 # recipes/recipe-macbook.yml
-# anubis-os, older Intel MacBook Air hardware-enablement variant.
-#
-# Scope: MacBook Air 2013 / 2015 / 2017 — all pre-T2 chip, so this is
-# much simpler than later T2 models: Broadcom Wi-Fi is the one thing
-# that doesn't "just work" out of the box on these machines.
-#
-# FaceTime HD webcam support was dropped: the only COPR repo this recipe
-# referenced (dani/facetimehd) no longer exists, and there is no actively
-# maintained drop-in replacement that's been verified safe for an
-# unattended image build. Revisit if/when a maintained driver is confirmed.
-#
-# Apple Silicon MacBook Airs (M1/M2/M3) are out of scope — see README.
+# anubis-os — variante para Intel MacBook Air 2013/2015/2017 (pré-T2).
+# O único hardware que não funciona out-of-the-box é o Wi-Fi Broadcom.
 
 name: anubis-os-macbook
 description: anubis-os tuned for 2013/2015/2017 Intel MacBook Air (Broadcom Wi-Fi)
@@ -20,43 +10,37 @@ image-version: "44"
 modules:
 
   # ---------------------------------------------------------------------
-  # 1. Freeworld codecs & drivers
-  #    RPM Fusion is already enabled in the ublue-os/silverblue-main base
-  #    image. However the base image also ships a `fedora-multimedia` repo
-  #    from negativo17.org which 404s on Fedora 42 and causes every dnf
-  #    operation to fail. Disable it first, then install from RPM Fusion.
+  # 1. Remover repo negativo17 quebrado no Fedora 44.
+  #    RPM Fusion já vem habilitado na base image — ffmpeg instala direto.
   # ---------------------------------------------------------------------
   - type: script
     snippets:
-      # The base image ships a negativo17 fedora-multimedia repo that 404s
-      # on Fedora 42. Remove it, then install the RPM Fusion release RPMs
-      # directly by URL so their repos are available for all later steps.
-      - echo 'cache-bust-2'
       - grep -rl 'negativo17.org' /etc/yum.repos.d/ | xargs rm -f
-      - VER=$(rpm -E %fedora) && rpm-ostree install --idempotent https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${VER}.noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${VER}.noarch.rpm
 
   - type: rpm-ostree
     install:
       - ffmpeg
 
   # ---------------------------------------------------------------------
-  # 2. Broadcom Wi-Fi (every MacBook Air in this range uses Broadcom)
-  #    kmod-wl from RPM Fusion is a prebuilt module for the stock Fedora
-  #    kernel. akmod-wl refuses to build in container builds (runs as root),
-  #    so we use the prebuilt kmod-wl + broadcom-wl firmware instead.
+  # 2. Broadcom Wi-Fi (MacBook Air 2013-2017)
+  #    kmod-wl é o módulo prebuilt do RPM Fusion para o kernel Fedora.
+  #    akmod-wl não funciona em container builds.
   # ---------------------------------------------------------------------
   - type: rpm-ostree
     install:
       - kmod-wl
       - broadcom-wl
 
+  # ---------------------------------------------------------------------
+  # 3. Hardware geral
+  # ---------------------------------------------------------------------
   - type: rpm-ostree
     install:
       - fwupd
       - bluez
 
   # ---------------------------------------------------------------------
-  # 3. Gaming
+  # 4. Gaming
   # ---------------------------------------------------------------------
   - type: rpm-ostree
     install:
@@ -66,11 +50,9 @@ modules:
       - lutris
       - wine
       - winetricks
-      - fastfetch        # branded system-info banner, see files module below
 
   # ---------------------------------------------------------------------
-  # 4. Everyday user security (NOT pentesting tools — defensive/privacy
-  #    tools only, suitable for a general-purpose gaming desktop).
+  # 5. Everyday user security
   # ---------------------------------------------------------------------
   - type: rpm-ostree
     install:
@@ -91,6 +73,9 @@ modules:
         - org.onlyoffice.desktopeditors
         - com.brave.Browser
 
+  # ---------------------------------------------------------------------
+  # 6. GNOME extensions
+  # ---------------------------------------------------------------------
   - type: gnome-extensions
     install:
       - Dash to Dock
@@ -100,13 +85,13 @@ modules:
       - Caffeine
       - PaperWM
 
+  # ---------------------------------------------------------------------
+  # 7. Homebrew
+  # ---------------------------------------------------------------------
   - type: brew
 
   # ---------------------------------------------------------------------
-  # Wallpapers, dconf defaults, ujust files, first-boot wallpaper unit,
-  # Anubis logo (icon theme + pixmaps, used by the os-release LOGO= field
-  # below) and fastfetch branding (ASCII logo + config), shared with the
-  # main recipe.yml via the same files/system/ tree.
+  # 8. Arquivos do sistema (wallpapers, dconf, ujust, units)
   # ---------------------------------------------------------------------
   - type: files
     files:
@@ -120,35 +105,6 @@ modules:
       - enable-gnome-extensions-defaults.sh
 
   # ---------------------------------------------------------------------
-  # Enable the first-boot unit that seeds the fastfetch config into any
-  # pre-existing user home directories (skel only covers brand-new
-  # accounts created after this image is built).
+  # 9. Signing
   # ---------------------------------------------------------------------
-  - type: systemd
-    system:
-      enabled:
-        - anubis-fastfetch-firstboot.service
-
-  # ---------------------------------------------------------------------
-  # Branding — rename from "Fedora Silverblue" to "Anubis Linux 44".
-  # Same rationale and field set as the main recipe.yml: ID/ID_LIKE are
-  # deliberately left untouched to avoid breaking COPR resolution for the
-  # kmod-wl / akmods modules above, so this runs near the very end.
-  # ---------------------------------------------------------------------
-  - type: os-release
-    properties:
-      NAME: "Anubis Linux"
-      PRETTY_NAME: "Anubis Linux 44"
-      VARIANT: "Anubis Linux"
-      VARIANT_ID: anubis-os
-      LOGO: anubis-logo
-      HOME_URL: "https://github.com/floatingskies/anubis-os"
-      DEFAULT_HOSTNAME: "anubis"
-
   - type: signing
-
-# Note: low-power/battery tuning (TLP, power-profiles-daemon) is worth
-# adding explicitly for 2013-era hardware where battery life matters more
-# than on current machines — consider a `power-profiles-daemon` + `tlp`
-# module addition once the base image boots and is verified on real
-# hardware, rather than guessing settings blind here.
