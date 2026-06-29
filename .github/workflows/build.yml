@@ -40,3 +40,43 @@ jobs:
 
           # enabled by default, disable if your image is small and you want faster builds
           maximize_build_space: true
+
+  iso:
+    name: Build ISO
+    needs: bluebuild
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
+    strategy:
+      fail-fast: false
+      matrix:
+        recipe:
+          - recipe.yml
+          # - recipe-macbook.yml   # uncomment when that recipe is stable
+    steps:
+      - name: Build ISO
+        uses: blue-build/github-workflow-templates/.github/workflows/reusable-iso.yml@v1
+        with:
+          recipe: ${{ matrix.recipe }}
+          cosign_public_key: cosign.pub
+        secrets:
+          registry_token: ${{ github.token }}
+          cosign_private_key: ${{ secrets.SIGNING_SECRET }}
+          cosign_private_key_password: ${{ secrets.SIGNING_SECRET_PASSWORD }}
+
+      # Optional: upload the ISO to GitHub Releases on main branch builds.
+      # Remove this step if you'd rather download ISOs from the workflow
+      # run's "Artifacts" section instead.
+      - name: Upload ISO to Release
+        if: github.ref == 'refs/heads/main' && github.event_name != 'schedule'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "*.iso"
+          tag_name: iso-${{ github.run_id }}
+          name: ISO Build ${{ github.run_id }}
+          draft: true
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
