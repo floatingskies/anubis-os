@@ -1,62 +1,28 @@
-# anubis-os branding + fastfetch bundle
+# 🌟 anubis-os
 
-This zip mirrors the layout your BlueBuild repo expects. Drop the contents
-straight into the root of your repo (merging with what's already there):
+[![build-ublue](https://github.com/SEU_USUARIO/anubis-os/actions/workflows/build.yml/badge.svg)](https://github.com/SEU_USUARIO/anubis-os/actions/workflows/build.yml)
+![GitHub stars](https://img.shields.io/github/stars/SEU_USUARIO/anubis-os?style=social)
+![Image Version](https://img.shields.io/badge/Fedora_Version-44-blue?logo=fedora)
+![Base](https://img.shields.io/badge/Base-Silverblue_Main-informational)
 
-```
-recipes/
-  recipe.yml            <- updated: ArcMenu->Logo Menu fix already applied,
-                            fastfetch package + os-release branding module
-                            + systemd module added
-  recipe-macbook.yml     <- same changes, FaceTime HD module already removed
+> **O canivete suíço definitivo para o dia a dia.** Uma imagem customizada e imutável baseada no Fedora Silverblue (via Universal Blue), projetada para quem quer jogar sem dor de cabeça, fazer pentesting leve de forma isolada e manter a máquina segura no uso diário.
 
-files/
-  system/...              <- gets copied to `/` by the existing `files` module
-  systemd/system/...       <- gets copied to /usr/lib/systemd/system by the
-                              `systemd` module
-```
+---
 
-## What's new in this bundle
+## 🛠️ O que é o anubis-os?
 
-- **Logo**: `files/system/usr/share/icons/hicolor/{scalable,256x256,symbolic}/apps/anubis-logo*`
-  and `files/system/usr/share/pixmaps/anubis-logo.png` — used by
-  `gnome-control-center`'s About page via `LOGO=anubis-logo` in `/etc/os-release`.
-- **Branding**: both recipes now have an `os-release` module setting
-  `NAME`/`PRETTY_NAME`/`VARIANT`/`LOGO`/etc. to "Anubis Linux 44". `ID`/`ID_LIKE`
-  are deliberately untouched (kept as `fedora`) so COPR resolution for earlier
-  modules (RPM Fusion, kmod-wl, etc.) doesn't break — that's also why this
-  module runs near the end of the build, right before `signing`.
-- **fastfetch**: package added to both recipes. Config lives at
-  `files/system/usr/share/fastfetch/anubis-config.jsonc`, using your ASCII art
-  (`anubis-ascii.txt`) as the logo. New accounts get it via
-  `/etc/skel/.config/fastfetch/config.jsonc`. Existing accounts (e.g. if
-  someone rebases an existing install onto this image) get it from a
-  first-boot systemd unit + script that copies the config in **without
-  overwriting** any config.jsonc a user already has.
-- **Alias**: `ff` and `fastfetch` both resolve to
-  `fastfetch --config /usr/share/fastfetch/anubis-config.jsonc`, set up via
-  `/etc/profile.d/anubis-fastfetch.sh`. Covers bash login + interactive
-  shells on Fedora by default; does NOT cover zsh (zsh doesn't source
-  `/etc/profile.d`) — see the comment in that file if you add zsh later.
-- **Privacy choices in fastfetch** (intentional — see comments in the
-  config itself): no `localip`, `publicip`, `weather`, `bluetooth`, or `wifi`
-  modules, and the title doesn't print `{user-name}@{host-name}`.
+O **anubis-os** nasceu daquela clássica vontade de *hobbyist* de não querer ter três sistemas operacionais ou VMs diferentes para tarefas do cotidiano. Em vez de quebrar o sistema instalando dezenas de pacotes de auditoria diretamente na base, esta imagem traz um ecossistema híbrido, limpo e atômico.
 
-## Still worth checking before merging
+* **🕹️ Gaming:** Pronto para o play via Flatpak (Steam, Lutris, Heroic) e otimizado com `gamemode` e `gamescope`. Nada de Wine poluindo o sistema base.
+* **🛡️ Pentesting Leve:** Ferramentas essenciais direto no terminal (`nmap`, `masscan`, `sqlmap`, `hydra`, `hashcat`) para auditorias rápidas sem quebrar as dependências do OS.
+* **🔒 Segurança Hardened:** Camada extra de proteção diária com `firewalld`, `firejail` para sandboxing, além de `clamav` e `rkhunter`.
+* **🎨 GNOME Moderno:** Visual refinado de fábrica usando extensões consagradas como *Blur my Shell*, *Dash to Dock* e *PaperWM* para produtividade máxima.
 
-1. Your repo already has `enable-first-boot-units.sh` and
-   `enable-gnome-extensions-defaults.sh` (referenced in both recipes) which
-   I never saw the contents of. Worth a quick check that the new
-   `anubis-fastfetch-firstboot.service` (enabled declaratively via the
-   `systemd` module) doesn't conflict with whatever those scripts already do
-   for unit-enabling.
-2. The dconf override file mentioned in your existing comments
-   (`files/system/etc/dconf/db/local.d/00-anubis-extensions`) also wasn't
-   shown to me, so I couldn't check it against anything here — there
-   shouldn't be any overlap, but worth a glance.
-3. The uploaded SVG (`anubis-logo.svg`) is actually a PNG wrapped in an SVG
-   container (not a true vector path) — works fine as a GTK icon, but if you
-   ever want a crisp icon at very large sizes, a real vector redraw would
-   look better than this raster-in-SVG approach.
-4. Haven't run an actual `bluebuild build` — please test before relying on
-   this in CI.
+---
+
+## 🚀 Como Instalar / Rebasear
+
+Se você já está em um sistema baseado em Universal Blue ou Fedora Silverblue, pode rebasear diretamente para o **anubis-os** com o comando abaixo:
+
+```bash
+rpm-ostree rebase ostree-unverified-registry:ghcr.io/SEU_USUARIO/anubis-os:44
