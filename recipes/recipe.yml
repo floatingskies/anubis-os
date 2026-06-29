@@ -30,27 +30,13 @@ modules:
       - ffmpeg
 
   # ---------------------------------------------------------------------
-  # 2. CachyOS kernel — generic build by default for broad compatibility
-  #    (1st-gen Intel Core through current Intel/AMD). CPU-tuned variants
-  #    stay opt-in via ujust, never default, so old hardware always boots.
-  #    %OS_VERSION% is substituted by blue-build at build time.
-  # ---------------------------------------------------------------------
-  - type: rpm-ostree
-    repos:
-      - https://copr.fedorainfracloud.org/coprs/bieszczaders/kernel-cachyos/repo/fedora-%OS_VERSION%/bieszczaders-kernel-cachyos-fedora-%OS_VERSION%.repo
-      - https://copr.fedorainfracloud.org/coprs/bieszczaders/kernel-cachyos-addons/repo/fedora-%OS_VERSION%/bieszczaders-kernel-cachyos-addons-fedora-%OS_VERSION%.repo
-    install:
-      - kernel-cachyos
-      - kernel-cachyos-devel
-      - scx-scheds
-
   # ---------------------------------------------------------------------
   # 3. Automatic hardware enablement
   #    Broadcom Wi-Fi: we use RPM Fusion's akmod-wl, which builds locally
   #    for whatever kernel is running via the akmods systemd service.
   #    BlueBuild's `akmods` module type only covers its own prebuilt
-  #    catalog (main/bazzite/asus/surface kernels) and does NOT support
-  #    kernel-cachyos, so we install akmod-wl as a plain RPM instead.
+  #    catalog (main/bazzite/asus/surface kernels), so we install akmod-wl
+  #    as a plain RPM instead.
   #    fwupd handles firmware updates automatically.
   # ---------------------------------------------------------------------
   - type: rpm-ostree

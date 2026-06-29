@@ -36,15 +36,6 @@ modules:
       - ffmpeg
 
   # ---------------------------------------------------------------------
-  # 2. CachyOS kernel — generic build only; these machines are old enough
-  #    that the generic baseline is the only sane default.
-  #    %OS_VERSION% is substituted by blue-build at build time.
-  # ---------------------------------------------------------------------
-  - type: rpm-ostree
-    repos:
-      - https://copr.fedorainfracloud.org/coprs/bieszczaders/kernel-cachyos/repo/fedora-%OS_VERSION%/bieszczaders-kernel-cachyos-fedora-%OS_VERSION%.repo
-    install:
-      - kernel-cachyos
 
   # ---------------------------------------------------------------------
   # 3. Broadcom Wi-Fi (every MacBook Air in this range uses Broadcom)
