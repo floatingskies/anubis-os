@@ -76,21 +76,12 @@ modules:
 
   - type: gnome-extensions
     install:
-      - id: 307
-      - id: 615
-      - id: 3193
-      - id: 3628
-      - id: 517
-      - id: 4099
-    settings:
-      gnome-shell:
-        enabled-extensions:
-          - "dash-to-dock@micxgx.gmail.com"
-          - "appindicatorsupport@rgcjonas.gmail.com"
-          - "blur-my-shell@aunetx"
-          - "arcmenu@arcmenu.com"
-          - "caffeine@patapon.info"
-          - "paperwm@hedning:matrix.org"
+      - Dash to Dock
+      - AppIndicator and KStatusNotifierItem Support
+      - Blur my Shell
+      - Arc Menu
+      - Caffeine
+      - PaperWM
 
   - type: brew
 
@@ -103,6 +94,7 @@ modules:
     scripts:
       - set-permissions.sh
       - enable-first-boot-units.sh
+      - enable-gnome-extensions-defaults.sh
 
   - type: signing
 

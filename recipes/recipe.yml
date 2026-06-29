@@ -104,21 +104,17 @@ modules:
   # ---------------------------------------------------------------------
   - type: gnome-extensions
     install:
-      - id: 307     # Dash to Dock
-      - id: 615     # AppIndicator and KStatusNotifierItem Support
-      - id: 3193    # Blur my Shell
-      - id: 3628    # Arc Menu (logo/app menu)
-      - id: 517     # Caffeine
-      - id: 4099    # PaperWM
-    settings:
-      gnome-shell:
-        enabled-extensions:
-          - "dash-to-dock@micxgx.gmail.com"
-          - "appindicatorsupport@rgcjonas.gmail.com"
-          - "blur-my-shell@aunetx"
-          - "arcmenu@arcmenu.com"
-          - "caffeine@patapon.info"
-          - "paperwm@hedning:matrix.org"
+      - Dash to Dock
+      - AppIndicator and KStatusNotifierItem Support
+      - Blur my Shell
+      - Arc Menu
+      - Caffeine
+      - PaperWM
+    # NOTE: this module only installs the extension files — it does not
+    # enable them. Enabling is done via a dconf default override shipped
+    # by the `files` module below (see
+    # files/system/etc/dconf/db/local.d/00-anubis-extensions and the
+    # matching dconf-update script).
 
   # ---------------------------------------------------------------------
   # 7. Homebrew (brew-oci layer)
@@ -137,6 +133,7 @@ modules:
     scripts:
       - set-permissions.sh
       - enable-first-boot-units.sh
+      - enable-gnome-extensions-defaults.sh
 
   # ---------------------------------------------------------------------
   # 9. Signing
