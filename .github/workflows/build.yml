@@ -34,7 +34,7 @@ jobs:
       - name: Build image
         uses: blue-build/github-action@v1
         with:
-          recipe: recipes/${{ matrix.recipe }}
+          recipe: ${{ matrix.recipe }}
           cosign_private_key: ""
           registry_token: ${{ secrets.GITHUB_TOKEN }}
           pr_event_number: ${{ github.event.number }}
@@ -63,7 +63,7 @@ jobs:
       - name: Generate ISO
         uses: blue-build/github-action@v1
         with:
-          recipe: recipes/${{ matrix.recipe }}
+          recipe: ${{ matrix.recipe }}
           cosign_private_key: ""
           registry_token: ${{ secrets.GITHUB_TOKEN }}
           generate_iso: true
