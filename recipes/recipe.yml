@@ -28,7 +28,6 @@ modules:
     install:
       - ffmpeg
       - mesa-va-drivers-freeworld
-      - mesa-vdpau-drivers-freeworld
 
   # ---------------------------------------------------------------------
   # 2. CachyOS kernel — generic build by default for broad compatibility
