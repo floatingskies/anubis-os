@@ -10,15 +10,16 @@ image-version: "42"
 modules:
 
   # ---------------------------------------------------------------------
-  # 1. RPM Fusion
+  # 1. RPM Fusion — installed via the `bling` module. A plain .repo URL
+  #    fetch (what was here before) 404s: RPM Fusion doesn't serve static
+  #    .repo files at that path, it's distributed as a release RPM.
   # ---------------------------------------------------------------------
-  - type: rpm-ostree
-    repos:
-      - https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free.repo
-      - https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree.repo
+  - type: bling
     install:
-      - rpmfusion-free-release
-      - rpmfusion-nonfree-release
+      - rpmfusion
+
+  - type: rpm-ostree
+    install:
       - ffmpeg
       - mesa-va-drivers-freeworld
       - mesa-vdpau-drivers-freeworld
@@ -30,8 +31,8 @@ modules:
   # ---------------------------------------------------------------------
   - type: rpm-ostree
     repos:
-      - https://copr.fedorainfracloud.org/coprs/bieszczaders/kernel-cachyos/repo/fedora-$releasever/bieszczaders-kernel-cachyos-fedora-$releasever.repo
-      - https://copr.fedorainfracloud.org/coprs/bieszczaders/kernel-cachyos-addons/repo/fedora-$releasever/bieszczaders-kernel-cachyos-addons-fedora-$releasever.repo
+      - https://copr.fedorainfracloud.org/coprs/bieszczaders/kernel-cachyos/repo/fedora-%OS_VERSION%/bieszczaders-kernel-cachyos-fedora-%OS_VERSION%.repo
+      - https://copr.fedorainfracloud.org/coprs/bieszczaders/kernel-cachyos-addons/repo/fedora-%OS_VERSION%/bieszczaders-kernel-cachyos-addons-fedora-%OS_VERSION%.repo
     install:
       - kernel-cachyos
       - kernel-cachyos-devel
@@ -40,16 +41,17 @@ modules:
   # ---------------------------------------------------------------------
   # 3. Automatic hardware enablement
   #    Broadcom Wi-Fi covers most older MacBooks (2013/2015/2017) and many
-  #    third-party laptops/desktops. fwupd handles firmware updates
-  #    automatically; no manual driver hunting should be needed for the
-  #    hardware this image targets.
+  #    third-party laptops/desktops. We use RPM Fusion's akmod-wl, which
+  #    builds locally for whatever kernel is running (via the akmods
+  #    systemd service) — NOT BlueBuild's `akmods` module type, which
+  #    only pulls ublue-os's prebuilt catalog for known kernel flavors
+  #    (main/bazzite/asus/surface) and does not cover kernel-cachyos.
+  #    fwupd handles firmware updates automatically; no manual driver
+  #    hunting should be needed for the hardware this image targets.
   # ---------------------------------------------------------------------
-  - type: akmods
-    install:
-      - broadcom-wl
-
   - type: rpm-ostree
     install:
+      - akmod-wl
       - fwupd                 # automatic firmware updates (BIOS/EC/peripheral)
       - NetworkManager         # already in base, kept explicit for clarity
       - bluez                 # Bluetooth auto-detect/pairing
