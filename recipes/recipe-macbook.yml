@@ -11,7 +11,7 @@
 name: anubis-os-macbook
 description: anubis-os tuned for 2013/2015/2017 Intel MacBook Air (Broadcom + FaceTime HD)
 base-image: ghcr.io/ublue-os/silverblue-main
-image-version: "42"
+image-version: "44"
 
 modules:
 
@@ -24,10 +24,11 @@ modules:
   # ---------------------------------------------------------------------
   - type: script
     snippets:
-      # negativo17's fedora-multimedia repo ships in the base image but has
-      # no Fedora 42 packages — it 404s and breaks every subsequent dnf call.
-      # Delete the repo file outright so it's gone for all later RUN layers.
+      # The base image ships a negativo17 fedora-multimedia repo that 404s
+      # on Fedora 42. Remove it, then install the RPM Fusion release RPMs
+      # directly by URL so their repos are available for all later steps.
       - grep -rl 'negativo17.org' /etc/yum.repos.d/ | xargs rm -f
+      - VER=$(rpm -E %fedora) && rpm-ostree install --idempotent https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${VER}.noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${VER}.noarch.rpm
 
   - type: rpm-ostree
     install:
