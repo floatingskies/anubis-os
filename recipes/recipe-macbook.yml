@@ -39,15 +39,13 @@ modules:
 
   # ---------------------------------------------------------------------
   # 3. Broadcom Wi-Fi (every MacBook Air in this range uses Broadcom)
-  #    akmod-wl builds the module at first boot against whatever kernel is
-  #    running; kmod-wl and broadcom-wl are the resulting built module and
-  #    firmware packages. Installing all three ensures Wi-Fi works both
-  #    immediately (kmod-wl) and after future kernel updates (akmod-wl rebuilds).
-  #    RPM Fusion is already enabled in the base image.
+  #    kmod-wl from RPM Fusion is a prebuilt module for the stock Fedora
+  #    kernel. akmod-wl refuses to build in container builds (runs as root),
+  #    so we use the prebuilt kmod-wl + broadcom-wl firmware instead.
   # ---------------------------------------------------------------------
   - type: rpm-ostree
     install:
-      - akmod-wl
+      - kmod-wl
       - kmod-wl
       - broadcom-wl
 

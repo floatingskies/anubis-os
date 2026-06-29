@@ -32,16 +32,10 @@ modules:
   # ---------------------------------------------------------------------
   # ---------------------------------------------------------------------
   # 3. Automatic hardware enablement
-  #    Broadcom Wi-Fi: we use RPM Fusion's akmod-wl, which builds locally
-  #    for whatever kernel is running via the akmods systemd service.
-  #    BlueBuild's `akmods` module type only covers its own prebuilt
-  #    catalog (main/bazzite/asus/surface kernels), so we install akmod-wl
-  #    as a plain RPM instead.
   #    fwupd handles firmware updates automatically.
   # ---------------------------------------------------------------------
   - type: rpm-ostree
     install:
-      - akmod-wl
       - fwupd                 # automatic firmware updates (BIOS/EC/peripheral)
       - NetworkManager        # already in base, kept explicit for clarity
       - bluez                 # Bluetooth auto-detect/pairing
