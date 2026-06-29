@@ -21,6 +21,7 @@ modules:
       # The base image ships a negativo17 fedora-multimedia repo that 404s
       # on Fedora 42. Remove it, then install the RPM Fusion release RPMs
       # directly by URL so their repos are available for all later steps.
+      - echo 'cache-bust-2'
       - grep -rl 'negativo17.org' /etc/yum.repos.d/ | xargs rm -f
       - VER=$(rpm -E %fedora) && rpm-ostree install --idempotent https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${VER}.noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${VER}.noarch.rpm
 
