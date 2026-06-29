@@ -1,7 +1,7 @@
 # 🌟 anubis-os
 
-[![build-ublue](https://github.com/SEU_USUARIO/anubis-os/actions/workflows/build.yml/badge.svg)](https://github.com/SEU_USUARIO/anubis-os/actions/workflows/build.yml)
-![GitHub stars](https://img.shields.io/github/stars/SEU_USUARIO/anubis-os?style=social)
+[![build-ublue](https://github.com/floatingskies/anubis-os/actions/workflows/build.yml/badge.svg)](https://github.com/floatingskies/anubis-os/actions/workflows/build.yml)
+![GitHub stars](https://img.shields.io/github/stars/floatingskies/anubis-os?style=social)
 ![Image Version](https://img.shields.io/badge/Fedora_Version-44-blue?logo=fedora)
 ![Base](https://img.shields.io/badge/Base-Silverblue_Main-informational)
 
