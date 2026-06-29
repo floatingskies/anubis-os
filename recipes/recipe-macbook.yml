@@ -15,35 +15,44 @@ image-version: "42"
 
 modules:
 
+  # ---------------------------------------------------------------------
+  # 1. Freeworld codecs & drivers
+  #    RPM Fusion is already enabled in the ublue-os/silverblue-main base
+  #    image — no repo setup needed here, just install from it directly.
+  # ---------------------------------------------------------------------
   - type: rpm-ostree
-    repos:
-      - https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free.repo
-      - https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree.repo
     install:
-      - rpmfusion-free-release
-      - rpmfusion-nonfree-release
       - ffmpeg
       - mesa-va-drivers-freeworld
 
+  # ---------------------------------------------------------------------
+  # 2. CachyOS kernel — generic build only; these machines are old enough
+  #    that the generic baseline is the only sane default.
+  #    %OS_VERSION% is substituted by blue-build at build time.
+  # ---------------------------------------------------------------------
   - type: rpm-ostree
     repos:
       - https://copr.fedorainfracloud.org/coprs/bieszczaders/kernel-cachyos/repo/fedora-%OS_VERSION%/bieszczaders-kernel-cachyos-fedora-%OS_VERSION%.repo
     install:
-      - kernel-cachyos     # generic build — these machines are old enough that
-                             # the generic baseline is the only sane default
+      - kernel-cachyos
 
-  # --- Broadcom Wi-Fi (every MacBook Air in this range uses Broadcom) ---
-  # akmod-wl builds the module at first boot against whatever kernel is
-  # running; kmod-wl and broadcom-wl are the resulting built module and
-  # firmware packages. Installing all three ensures Wi-Fi works both
-  # immediately (kmod-wl) and after future kernel updates (akmod-wl rebuilds).
+  # ---------------------------------------------------------------------
+  # 3. Broadcom Wi-Fi (every MacBook Air in this range uses Broadcom)
+  #    akmod-wl builds the module at first boot against whatever kernel is
+  #    running; kmod-wl and broadcom-wl are the resulting built module and
+  #    firmware packages. Installing all three ensures Wi-Fi works both
+  #    immediately (kmod-wl) and after future kernel updates (akmod-wl rebuilds).
+  #    RPM Fusion is already enabled in the base image.
+  # ---------------------------------------------------------------------
   - type: rpm-ostree
     install:
       - akmod-wl
       - kmod-wl
       - broadcom-wl
 
-  # --- FaceTime HD webcam (out-of-tree driver, all-Air-models-in-range) ---
+  # ---------------------------------------------------------------------
+  # 4. FaceTime HD webcam (out-of-tree driver, all Air models in range)
+  # ---------------------------------------------------------------------
   - type: akmods
     repos:
       - https://copr.fedorainfracloud.org/coprs/dani/facetimehd/repo/fedora-%OS_VERSION%/dani-facetimehd-fedora-%OS_VERSION%.repo
@@ -55,6 +64,9 @@ modules:
       - fwupd
       - bluez
 
+  # ---------------------------------------------------------------------
+  # 5. Gaming
+  # ---------------------------------------------------------------------
   - type: rpm-ostree
     install:
       - steam

@@ -10,17 +10,12 @@ image-version: "42"
 modules:
 
   # ---------------------------------------------------------------------
-  # 1. RPM Fusion — installed as release RPMs from their own repos.
-  #    The `bling` module wrapper for this is deprecated and broken in
-  #    current blue-build; this direct rpm-ostree approach is correct.
+  # 1. Freeworld codecs & drivers
+  #    RPM Fusion is already enabled in the ublue-os/silverblue-main base
+  #    image — no repo setup needed here, just install from it directly.
   # ---------------------------------------------------------------------
   - type: rpm-ostree
-    repos:
-      - https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free.repo
-      - https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree.repo
     install:
-      - rpmfusion-free-release
-      - rpmfusion-nonfree-release
       - ffmpeg
       - mesa-va-drivers-freeworld
       - mesa-vdpau-drivers-freeworld
