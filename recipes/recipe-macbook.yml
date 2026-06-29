@@ -2,14 +2,18 @@
 # anubis-os, older Intel MacBook Air hardware-enablement variant.
 #
 # Scope: MacBook Air 2013 / 2015 / 2017 — all pre-T2 chip, so this is
-# much simpler than later T2 models: Broadcom Wi-Fi + the FaceTime HD
-# webcam driver cover essentially everything that doesn't "just work"
-# out of the box on these machines.
+# much simpler than later T2 models: Broadcom Wi-Fi is the one thing
+# that doesn't "just work" out of the box on these machines.
+#
+# FaceTime HD webcam support was dropped: the only COPR repo this recipe
+# referenced (dani/facetimehd) no longer exists, and there is no actively
+# maintained drop-in replacement that's been verified safe for an
+# unattended image build. Revisit if/when a maintained driver is confirmed.
 #
 # Apple Silicon MacBook Airs (M1/M2/M3) are out of scope — see README.
 
 name: anubis-os-macbook
-description: anubis-os tuned for 2013/2015/2017 Intel MacBook Air (Broadcom + FaceTime HD)
+description: anubis-os tuned for 2013/2015/2017 Intel MacBook Air (Broadcom Wi-Fi)
 base-image: ghcr.io/ublue-os/silverblue-main
 image-version: "44"
 
@@ -36,9 +40,7 @@ modules:
       - ffmpeg
 
   # ---------------------------------------------------------------------
-
-  # ---------------------------------------------------------------------
-  # 3. Broadcom Wi-Fi (every MacBook Air in this range uses Broadcom)
+  # 2. Broadcom Wi-Fi (every MacBook Air in this range uses Broadcom)
   #    kmod-wl from RPM Fusion is a prebuilt module for the stock Fedora
   #    kernel. akmod-wl refuses to build in container builds (runs as root),
   #    so we use the prebuilt kmod-wl + broadcom-wl firmware instead.
@@ -48,22 +50,13 @@ modules:
       - kmod-wl
       - broadcom-wl
 
-  # ---------------------------------------------------------------------
-  # 4. FaceTime HD webcam (out-of-tree driver, all Air models in range)
-  # ---------------------------------------------------------------------
-  - type: akmods
-    repos:
-      - https://copr.fedorainfracloud.org/coprs/dani/facetimehd/repo/fedora-%OS_VERSION%/dani-facetimehd-fedora-%OS_VERSION%.repo
-    install:
-      - facetimehd
-
   - type: rpm-ostree
     install:
       - fwupd
       - bluez
 
   # ---------------------------------------------------------------------
-  # 5. Gaming
+  # 3. Gaming
   # ---------------------------------------------------------------------
   - type: rpm-ostree
     install:
@@ -72,6 +65,15 @@ modules:
       - mangohud
       - lutris
       - wine
+      - winetricks
+      - fastfetch        # branded system-info banner, see files module below
+
+  # ---------------------------------------------------------------------
+  # 4. Everyday user security (NOT pentesting tools — defensive/privacy
+  #    tools only, suitable for a general-purpose gaming desktop).
+  # ---------------------------------------------------------------------
+  - type: rpm-ostree
+    install:
       - firewalld
       - clamav
       - rkhunter
@@ -94,12 +96,18 @@ modules:
       - Dash to Dock
       - AppIndicator and KStatusNotifierItem Support
       - Blur my Shell
-      - Arc Menu
+      - Logo Menu
       - Caffeine
       - PaperWM
 
   - type: brew
 
+  # ---------------------------------------------------------------------
+  # Wallpapers, dconf defaults, ujust files, first-boot wallpaper unit,
+  # Anubis logo (icon theme + pixmaps, used by the os-release LOGO= field
+  # below) and fastfetch branding (ASCII logo + config), shared with the
+  # main recipe.yml via the same files/system/ tree.
+  # ---------------------------------------------------------------------
   - type: files
     files:
       - source: system
@@ -110,6 +118,32 @@ modules:
       - set-permissions.sh
       - enable-first-boot-units.sh
       - enable-gnome-extensions-defaults.sh
+
+  # ---------------------------------------------------------------------
+  # Enable the first-boot unit that seeds the fastfetch config into any
+  # pre-existing user home directories (skel only covers brand-new
+  # accounts created after this image is built).
+  # ---------------------------------------------------------------------
+  - type: systemd
+    system:
+      enabled:
+        - anubis-fastfetch-firstboot.service
+
+  # ---------------------------------------------------------------------
+  # Branding — rename from "Fedora Silverblue" to "Anubis Linux 44".
+  # Same rationale and field set as the main recipe.yml: ID/ID_LIKE are
+  # deliberately left untouched to avoid breaking COPR resolution for the
+  # kmod-wl / akmods modules above, so this runs near the very end.
+  # ---------------------------------------------------------------------
+  - type: os-release
+    properties:
+      NAME: "Anubis Linux"
+      PRETTY_NAME: "Anubis Linux 44"
+      VARIANT: "Anubis Linux"
+      VARIANT_ID: anubis-os
+      LOGO: anubis-logo
+      HOME_URL: "https://github.com/floatingskies/anubis-os"
+      DEFAULT_HOSTNAME: "anubis"
 
   - type: signing
 
