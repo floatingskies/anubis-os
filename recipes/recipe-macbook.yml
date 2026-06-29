@@ -78,7 +78,7 @@ modules:
       - aide
       - firejail
 
-  - type: default-flatpaks
+  - type: default-flatpaks@v1
     notify: true
     system:
       install:
