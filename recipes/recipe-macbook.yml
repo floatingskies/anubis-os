@@ -1,6 +1,5 @@
 # recipes/recipe-macbook.yml
-# anubis-os — variante para Intel MacBook Air 2013/2015/2017 (pré-T2).
-# O único hardware que não funciona out-of-the-box é o Wi-Fi Broadcom.
+# anubis-os — variante para Intel MacBook Air 2013/2015/2017 (pré-T2)
 
 name: anubis-os-macbook
 description: anubis-os tuned for 2013/2015/2017 Intel MacBook Air (Broadcom Wi-Fi)
@@ -10,8 +9,7 @@ image-version: "44"
 modules:
 
   # ---------------------------------------------------------------------
-  # 1. Remover repo negativo17 quebrado no Fedora 44.
-  #    RPM Fusion já vem habilitado na base image — ffmpeg instala direto.
+  # 1. Remover repo negativo17 quebrado no Fedora 44
   # ---------------------------------------------------------------------
   - type: script
     snippets:
@@ -23,8 +21,6 @@ modules:
 
   # ---------------------------------------------------------------------
   # 2. Broadcom Wi-Fi (MacBook Air 2013-2017)
-  #    kmod-wl é o módulo prebuilt do RPM Fusion para o kernel Fedora.
-  #    akmod-wl não funciona em container builds.
   # ---------------------------------------------------------------------
   - type: rpm-ostree
     install:
@@ -40,19 +36,40 @@ modules:
       - bluez
 
   # ---------------------------------------------------------------------
-  # 4. Gaming
+  # 4. Gaming (sem wine — gerenciado via Flatpak/Proton)
   # ---------------------------------------------------------------------
   - type: rpm-ostree
     install:
       - gamescope
       - gamemode
       - mangohud
-      - lutris
-      - wine
-      - winetricks
 
   # ---------------------------------------------------------------------
-  # 5. Everyday user security
+  # 5. Ferramentas de pentesting leves
+  # ---------------------------------------------------------------------
+  - type: rpm-ostree
+    install:
+      - nmap
+      - nmap-ncat
+      - wireshark-cli
+      - tcpdump
+      - masscan
+      - john
+      - hashcat
+      - hydra
+      - sqlmap
+      - dirb
+      - nikto
+      - netcat
+      - whois
+      - curl
+      - wget
+      - bind-utils
+      - traceroute
+      - net-tools
+
+  # ---------------------------------------------------------------------
+  # 6. Everyday user security
   # ---------------------------------------------------------------------
   - type: rpm-ostree
     install:
@@ -62,19 +79,42 @@ modules:
       - aide
       - firejail
 
+  # ---------------------------------------------------------------------
+  # 7. Terminal / shell enhancements
+  # ---------------------------------------------------------------------
+  - type: rpm-ostree
+    install:
+      - fastfetch
+      - bash-color-prompt
+      - starship
+
+  # ---------------------------------------------------------------------
+  # 8. Flatpaks
+  # ---------------------------------------------------------------------
   - type: default-flatpaks@v1
     notify: true
     system:
       install:
         - com.valvesoftware.Steam
+        - net.lutris.Lutris
+        - org.ppsspp.PPSSPP
+        - net.pcsx2.PCSX2
+        - org.DolphinEmu.dolphin-emu
         - org.gimp.GIMP
         - org.inkscape.Inkscape
         - com.github.PintaProject.Pinta
         - org.onlyoffice.desktopeditors
         - com.brave.Browser
+        - com.mattjakeman.ExtensionManager
+        - org.gnome.Resources
+        - org.gnome.Boxes
+        - io.github.flattool.Warehouse
+        - io.gitlab.adhami3310.Impression
+        - app.devsuite.Ptyxis
+        - page.codeberg.Cogitri.Bazaar
 
   # ---------------------------------------------------------------------
-  # 6. GNOME extensions
+  # 9. GNOME extensions
   # ---------------------------------------------------------------------
   - type: gnome-extensions
     install:
@@ -86,12 +126,12 @@ modules:
       - PaperWM
 
   # ---------------------------------------------------------------------
-  # 7. Homebrew
+  # 10. Homebrew
   # ---------------------------------------------------------------------
   - type: brew
 
   # ---------------------------------------------------------------------
-  # 8. Arquivos do sistema (wallpapers, dconf, ujust, units)
+  # 11. Arquivos do sistema
   # ---------------------------------------------------------------------
   - type: files
     files:
@@ -102,9 +142,15 @@ modules:
     scripts:
       - set-permissions.sh
       - enable-first-boot-units.sh
+      - setup-hostname.sh
+      - setup-os-release.sh
+      - setup-logo.sh
+      - setup-plymouth.sh
+      - setup-wallpaper.sh
+      - setup-ohmybash.sh
       - enable-gnome-extensions-defaults.sh
 
   # ---------------------------------------------------------------------
-  # 9. Signing
+  # 12. Signing
   # ---------------------------------------------------------------------
   - type: signing
