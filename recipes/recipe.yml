@@ -52,7 +52,6 @@ modules:
       - lutris
       - wine
       - winetricks
-      - vkbasalt
       - corectrl
 
   - type: default-flatpaks
