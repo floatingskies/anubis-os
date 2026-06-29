@@ -50,21 +50,11 @@ modules:
   - type: rpm-ostree
     install:
       - nmap
-      - nmap-ncat
       - wireshark-cli
-      - tcpdump
-      - masscan
-      - john
-      - hashcat
-      - hydra
-      - sqlmap
-      - dirb
-      - nikto
       - netcat
       - whois
       - curl
       - wget
-      - bind-utils
       - traceroute
       - net-tools
 
