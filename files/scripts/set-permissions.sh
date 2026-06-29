@@ -1,16 +1,35 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Ensure custom .just files are readable in the ujust menu
-chmod 644 /usr/share/ublue-os/just/60-anubis.just
+# ujust
+chmod 644 /usr/share/ublue-os/just/60-anubis.just 2>/dev/null || true
 
-# Sysctl hardening drop-in ships disabled-by-default (commented), readable by all
-chmod 644 /etc/sysctl.d/80-anubis-hardening.conf
+# sysctl hardening
+chmod 644 /etc/sysctl.d/80-anubis-hardening.conf 2>/dev/null || true
 
-# Wallpaper picker script + unit
-chmod 755 /usr/share/anubis-os/scripts/anubis-pick-wallpaper.sh
-chmod 644 /usr/lib/systemd/system/anubis-first-boot-wallpaper.service
-chmod 644 /usr/share/backgrounds/anubis-os/*
+# Wallpaper script + unit
+chmod 755 /usr/share/anubis-os/scripts/anubis-pick-wallpaper.sh 2>/dev/null || true
+chmod 644 /usr/lib/systemd/system/anubis-first-boot-wallpaper.service 2>/dev/null || true
 
-# GNOME extensions default-enable dconf override
-chmod 644 /etc/dconf/db/local.d/00-anubis-extensions
+# Wallpapers
+chmod 644 /usr/share/backgrounds/anubis-os/* 2>/dev/null || true
+
+# dconf extension override
+chmod 644 /etc/dconf/db/local.d/00-anubis-extensions 2>/dev/null || true
+
+# Logo
+chmod 644 /usr/share/pixmaps/anubis-logo.png 2>/dev/null || true
+chmod 644 /usr/share/pixmaps/anubis-logo-white.png 2>/dev/null || true
+
+# Plymouth theme
+chmod 755 /usr/share/plymouth/themes/anubis 2>/dev/null || true
+chmod 644 /usr/share/plymouth/themes/anubis/* 2>/dev/null || true
+
+# Fastfetch config
+chmod 644 /etc/skel/.config/fastfetch/config.jsonc 2>/dev/null || true
+
+# Oh My Bash install script
+chmod 755 /usr/share/anubis-os/scripts/setup-ohmybash-user.sh 2>/dev/null || true
+
+# Logo Menu extension logo
+chmod 644 /usr/share/gnome-shell/extensions/logomenu@aryan_k/media/logo.svg 2>/dev/null || true
