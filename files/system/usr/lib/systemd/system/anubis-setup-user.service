@@ -1,0 +1,13 @@
+[Unit]
+Description=Anubis OS first-boot user setup
+After=multi-user.target
+ConditionPathExists=!/var/lib/anubis-setup-done
+
+[Service]
+Type=oneshot
+ExecStart=/usr/share/anubis-os/scripts/setup-ohmybash-user.sh
+ExecStartPost=/usr/bin/touch /var/lib/anubis-setup-done
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
