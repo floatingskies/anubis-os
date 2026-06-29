@@ -46,7 +46,6 @@ modules:
   - type: rpm-ostree
     install:
       - kmod-wl
-      - kmod-wl
       - broadcom-wl
 
   # ---------------------------------------------------------------------
@@ -68,7 +67,6 @@ modules:
   # ---------------------------------------------------------------------
   - type: rpm-ostree
     install:
-      - steam
       - gamescope
       - gamemode
       - mangohud
@@ -79,12 +77,12 @@ modules:
       - rkhunter
       - aide
       - firejail
-      - opensnitch
 
   - type: default-flatpaks
     notify: true
     system:
       install:
+        - com.valvesoftware.Steam
         - org.gimp.GIMP
         - org.inkscape.Inkscape
         - com.github.PintaProject.Pinta
