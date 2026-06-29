@@ -1,0 +1,113 @@
+# recipes/recipe-macbook.yml
+# anubis-os, older Intel MacBook Air hardware-enablement variant.
+#
+# Scope: MacBook Air 2013 / 2015 / 2017 — all pre-T2 chip, so this is
+# much simpler than later T2 models: Broadcom Wi-Fi + the FaceTime HD
+# webcam driver cover essentially everything that doesn't "just work"
+# out of the box on these machines.
+#
+# Apple Silicon MacBook Airs (M1/M2/M3) are out of scope — see README.
+
+name: anubis-os-macbook
+description: anubis-os tuned for 2013/2015/2017 Intel MacBook Air (Broadcom + FaceTime HD)
+base-image: ghcr.io/ublue-os/silverblue-main
+image-version: "42"
+
+modules:
+
+  - type: rpm-ostree
+    repos:
+      - https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free.repo
+      - https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree.repo
+    install:
+      - rpmfusion-free-release
+      - rpmfusion-nonfree-release
+      - ffmpeg
+      - mesa-va-drivers-freeworld
+
+  - type: rpm-ostree
+    repos:
+      - https://copr.fedorainfracloud.org/coprs/bieszczaders/kernel-cachyos/repo/fedora-$releasever/bieszczaders-kernel-cachyos-fedora-$releasever.repo
+    install:
+      - kernel-cachyos     # generic build — these machines are old enough that
+                             # the generic baseline is the only sane default
+
+  # --- Broadcom Wi-Fi (every MacBook Air in this range uses Broadcom) ---
+  - type: akmods
+    install:
+      - broadcom-wl
+
+  # --- FaceTime HD webcam (out-of-tree driver, all-Air-models-in-range) ---
+  - type: akmods
+    repos:
+      - https://copr.fedorainfracloud.org/coprs/dani/facetimehd/repo/fedora-$releasever/dani-facetimehd-fedora-$releasever.repo
+    install:
+      - facetimehd
+
+  - type: rpm-ostree
+    install:
+      - fwupd
+      - bluez
+
+  - type: rpm-ostree
+    install:
+      - steam
+      - gamescope
+      - gamemode
+      - mangohud
+      - lutris
+      - wine
+      - firewalld
+      - clamav
+      - rkhunter
+      - aide
+      - firejail
+      - opensnitch
+
+  - type: default-flatpaks
+    notify: true
+    system:
+      install:
+        - org.gimp.GIMP
+        - org.inkscape.Inkscape
+        - com.github.PintaProject.Pinta
+        - org.onlyoffice.desktopeditors
+        - com.brave.Browser
+
+  - type: gnome-extensions
+    install:
+      - id: 307
+      - id: 615
+      - id: 3193
+      - id: 3628
+      - id: 517
+      - id: 4099
+    settings:
+      gnome-shell:
+        enabled-extensions:
+          - "dash-to-dock@micxgx.gmail.com"
+          - "appindicatorsupport@rgcjonas.gmail.com"
+          - "blur-my-shell@aunetx"
+          - "arcmenu@arcmenu.com"
+          - "caffeine@patapon.info"
+          - "paperwm@hedning:matrix.org"
+
+  - type: brew
+
+  - type: files
+    files:
+      - source: system
+        destination: /
+
+  - type: script
+    scripts:
+      - set-permissions.sh
+      - enable-first-boot-units.sh
+
+  - type: signing
+
+# Note: low-power/battery tuning (TLP, power-profiles-daemon) is worth
+# adding explicitly for 2013-era hardware where battery life matters more
+# than on current machines — consider a `power-profiles-daemon` + `tlp`
+# module addition once the base image boots and is verified on real
+# hardware, rather than guessing settings blind here.

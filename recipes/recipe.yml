@@ -1,45 +1,144 @@
----
-# yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
-# image will be published to ghcr.io/<user>/<name>
+# recipes/recipe.yml
+# anubis-os — GNOME desktop, gaming + everyday user security (NOT pentesting),
+# broad x86_64 hardware support (1st-gen Intel Core through current, all AMD64).
+
 name: anubis-os
-# description will be included in the image's metadata
-description: This is my personal OS image.
+description: GNOME-based gaming & security-focused immutable Fedora (Universal Blue)
+base-image: ghcr.io/ublue-os/silverblue-main   # GNOME ostree base
+image-version: "42"
 
-# the base image to build on top of (FROM) and the version tag to use
-base-image: ghcr.io/ublue-os/silverblue-main
-image-version: 42 # latest is also supported if you want new updates ASAP
-
-# module configuration, executed in order
-# you can include multiple instances of the same module
 modules:
+
+  # ---------------------------------------------------------------------
+  # 1. RPM Fusion
+  # ---------------------------------------------------------------------
+  - type: rpm-ostree
+    repos:
+      - https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free.repo
+      - https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree.repo
+    install:
+      - rpmfusion-free-release
+      - rpmfusion-nonfree-release
+      - ffmpeg
+      - mesa-va-drivers-freeworld
+      - mesa-vdpau-drivers-freeworld
+
+  # ---------------------------------------------------------------------
+  # 2. CachyOS kernel — generic build by default for broad compatibility
+  #    (1st-gen Intel Core through current Intel/AMD). CPU-tuned variants
+  #    stay opt-in via ujust, never default, so old hardware always boots.
+  # ---------------------------------------------------------------------
+  - type: rpm-ostree
+    repos:
+      - https://copr.fedorainfracloud.org/coprs/bieszczaders/kernel-cachyos/repo/fedora-$releasever/bieszczaders-kernel-cachyos-fedora-$releasever.repo
+      - https://copr.fedorainfracloud.org/coprs/bieszczaders/kernel-cachyos-addons/repo/fedora-$releasever/bieszczaders-kernel-cachyos-addons-fedora-$releasever.repo
+    install:
+      - kernel-cachyos
+      - kernel-cachyos-devel
+      - scx-scheds
+
+  # ---------------------------------------------------------------------
+  # 3. Automatic hardware enablement
+  #    Broadcom Wi-Fi covers most older MacBooks (2013/2015/2017) and many
+  #    third-party laptops/desktops. fwupd handles firmware updates
+  #    automatically; no manual driver hunting should be needed for the
+  #    hardware this image targets.
+  # ---------------------------------------------------------------------
+  - type: akmods
+    install:
+      - broadcom-wl
+
+  - type: rpm-ostree
+    install:
+      - fwupd                 # automatic firmware updates (BIOS/EC/peripheral)
+      - NetworkManager         # already in base, kept explicit for clarity
+      - bluez                 # Bluetooth auto-detect/pairing
+
+  # ---------------------------------------------------------------------
+  # 4. SteamOS-style gaming
+  # ---------------------------------------------------------------------
+  - type: rpm-ostree
+    install:
+      - steam
+      - gamescope
+      - gamemode
+      - mangohud
+      - lutris
+      - wine
+      - winetricks
+      - vkbasalt
+      - corectrl
+
+  - type: default-flatpaks
+    notify: true
+    system:
+      install:
+        - net.davidotek.pupgui2          # ProtonUp-Qt
+        - com.heroicgameslauncher.hgl
+        # --- Creative tools ---
+        - org.gimp.GIMP
+        - org.inkscape.Inkscape
+        - com.github.PintaProject.Pinta
+        # --- Office ---
+        - org.onlyoffice.desktopeditors
+        # --- Browser (default) ---
+        - com.brave.Browser
+
+  # ---------------------------------------------------------------------
+  # 5. Everyday user security (NOT pentesting tools — defensive/privacy
+  #    tools only, suitable for a general-purpose gaming desktop).
+  # ---------------------------------------------------------------------
+  - type: rpm-ostree
+    install:
+      - firewalld
+      - clamav
+      - clamav-update
+      - rkhunter
+      - aide
+      - firejail
+      - opensnitch
+
+  # ---------------------------------------------------------------------
+  # 6. GNOME desktop extensions — dash-to-dock, AppIndicator/legacy tray,
+  #    Blur My Shell, a logo/app menu (Arc Menu), Caffeine, PaperWM.
+  # ---------------------------------------------------------------------
+  - type: gnome-extensions
+    install:
+      - id: 307     # Dash to Dock
+      - id: 615     # AppIndicator and KStatusNotifierItem Support
+      - id: 3193    # Blur my Shell
+      - id: 3628    # Arc Menu (logo/app menu)
+      - id: 517     # Caffeine
+      - id: 4099    # PaperWM
+    settings:
+      gnome-shell:
+        enabled-extensions:
+          - "dash-to-dock@micxgx.gmail.com"
+          - "appindicatorsupport@rgcjonas.gmail.com"
+          - "blur-my-shell@aunetx"
+          - "arcmenu@arcmenu.com"
+          - "caffeine@patapon.info"
+          - "paperwm@hedning:matrix.org"
+
+  # ---------------------------------------------------------------------
+  # 7. Homebrew (brew-oci layer)
+  # ---------------------------------------------------------------------
+  - type: brew
+
+  # ---------------------------------------------------------------------
+  # 8. Wallpapers, dconf defaults, ujust files, first-boot wallpaper unit
+  # ---------------------------------------------------------------------
   - type: files
     files:
       - source: system
-        destination: / # copies files/system/* (* means everything inside it) into your image's root folder /
+        destination: /
 
-  - type: dnf
-    repos:
-      copr:
-        - atim/starship
-    install:
-      packages:
-        - micro
-        - starship
-    remove:
-      packages:
-        # example: removing firefox (in favor of the flatpak)
-        # "firefox" is the main package, "firefox-langpacks" is a dependency
-        - firefox
-        - firefox-langpacks # also remove firefox dependency (not required for all packages, this is a special case)
+  - type: script
+    scripts:
+      - set-permissions.sh
+      - enable-first-boot-units.sh
 
-  - type: default-flatpaks
-    configurations:
-      - notify: true # Send notification after install/uninstall is finished (true/false)
-        scope: system
-        # If no repo information is specified, Flathub will be used by default
-        install: # system flatpaks we want all users to have and not remove
-          - org.mozilla.firefox
-          - org.gnome.Loupe
-      - scope: user # Also add Flathub user repo, but no user packages
-
-  - type: signing # this sets up the proper policy & signing files for signed images to work fully
+  # ---------------------------------------------------------------------
+  # 9. Signing
+  # ---------------------------------------------------------------------
+  - type: signing
