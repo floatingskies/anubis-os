@@ -18,7 +18,10 @@ modules:
   # ---------------------------------------------------------------------
   - type: script
     snippets:
-      - dnf config-manager --set-disabled fedora-multimedia || true
+      # negativo17's fedora-multimedia repo ships in the base image but has
+      # no Fedora 42 packages — it 404s and breaks every subsequent dnf call.
+      # Delete the repo file outright so it's gone for all later RUN layers.
+      - grep -rl 'negativo17.org' /etc/yum.repos.d/ | xargs rm -f
 
   - type: rpm-ostree
     install:
