@@ -12,8 +12,14 @@ modules:
   # ---------------------------------------------------------------------
   # 1. Freeworld codecs & drivers
   #    RPM Fusion is already enabled in the ublue-os/silverblue-main base
-  #    image — no repo setup needed here, just install from it directly.
+  #    image. However the base image also ships a `fedora-multimedia` repo
+  #    from negativo17.org which 404s on Fedora 42 and causes every dnf
+  #    operation to fail. Disable it first, then install from RPM Fusion.
   # ---------------------------------------------------------------------
+  - type: script
+    snippets:
+      - dnf config-manager --set-disabled fedora-multimedia || true
+
   - type: rpm-ostree
     install:
       - ffmpeg
