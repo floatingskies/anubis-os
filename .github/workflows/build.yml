@@ -35,11 +35,10 @@ jobs:
         uses: blue-build/github-action@v1
         with:
           recipe: recipes/${{ matrix.recipe }}
+          cosign_private_key: ""
           registry_token: ${{ secrets.GITHUB_TOKEN }}
           pr_event_number: ${{ github.event.number }}
-          use_unstable_cli: true
-        env:
-          BB_BUILD_OPTS: "--no-sign"
+          build_opts: "--no-sign"
 
   iso:
     name: ISO (${{ matrix.artifact }})
@@ -65,11 +64,10 @@ jobs:
         uses: blue-build/github-action@v1
         with:
           recipe: recipes/${{ matrix.recipe }}
+          cosign_private_key: ""
           registry_token: ${{ secrets.GITHUB_TOKEN }}
           generate_iso: true
-          use_unstable_cli: true
-        env:
-          BB_BUILD_OPTS: "--no-sign"
+          build_opts: "--no-sign"
 
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
