@@ -12,7 +12,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  # ── 1. Build & push container images ──────────────────────────────────────
   build:
     name: Build (${{ matrix.recipe }})
     runs-on: ubuntu-latest
@@ -36,12 +35,12 @@ jobs:
         uses: blue-build/github-action@v1
         with:
           recipe: recipes/${{ matrix.recipe }}
-          cosign_private_key: ${{ secrets.COSIGN_PRIVATE_KEY }}
-          cosign_private_key_password: ${{ secrets.COSIGN_PRIVATE_KEY_PASSWORD }}
           registry_token: ${{ secrets.GITHUB_TOKEN }}
           pr_event_number: ${{ github.event.number }}
+          use_unstable_cli: true
+        env:
+          BB_BUILD_OPTS: "--no-sign"
 
-  # ── 2. Gerar ISO (somente após o build ter concluído) ─────────────────────
   iso:
     name: ISO (${{ matrix.artifact }})
     needs: build
@@ -66,10 +65,11 @@ jobs:
         uses: blue-build/github-action@v1
         with:
           recipe: recipes/${{ matrix.recipe }}
-          cosign_private_key: ${{ secrets.COSIGN_PRIVATE_KEY }}
-          cosign_private_key_password: ${{ secrets.COSIGN_PRIVATE_KEY_PASSWORD }}
           registry_token: ${{ secrets.GITHUB_TOKEN }}
           generate_iso: true
+          use_unstable_cli: true
+        env:
+          BB_BUILD_OPTS: "--no-sign"
 
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
@@ -79,7 +79,6 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
-  # ── 3. Re-upload limpo + attach em releases de tags ───────────────────────
   upload-iso:
     name: Upload ISO (${{ matrix.artifact }})
     needs: iso
