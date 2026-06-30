@@ -82,16 +82,17 @@ modules:
 # ---------------------------------------------------------------------
   # 6. Pre-baked Flatpaks (Embutidos na ISO / Instalação Offline)
   # ---------------------------------------------------------------------
-  - type: flatpaks
-    system:
-      install:
-        - com.ranfdev.DistroShelf
-        - com.valvesoftware.Steam
-        - org.libretro.RetroArch
-        - com.visualstudio.code
-        - org.gnome.Showtime
-        - io.github.getnf.embellish
-        - org.libreoffice.LibreOffice
+  - type: default-flatpaks
+    configurations:
+      - scope: system
+        install:
+          - com.ranfdev.DistroShelf
+          - com.valvesoftware.Steam
+          - org.libretro.RetroArch
+          - com.visualstudio.code
+          - org.gnome.Showtime
+          - io.github.getnf.embellish
+          - org.libreoffice.LibreOffice
 
   # ---------------------------------------------------------------------
   # 7. Everyday user security
