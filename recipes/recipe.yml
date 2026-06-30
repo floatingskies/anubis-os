@@ -1,8 +1,8 @@
 # recipes/recipe.yml
-# anubis-os — GNOME desktop, gaming + pentesting leve + everyday security
+# anubis-os — variante genérica (x86_64)
 
 name: anubis-os
-description: GNOME-based gaming, security & pentesting immutable Fedora (Universal Blue)
+description: anubis-os — custom Fedora Silverblue-based image
 base-image: ghcr.io/ublue-os/silverblue-main
 image-version: "44"
 
@@ -25,7 +25,6 @@ modules:
   - type: rpm-ostree
     install:
       - fwupd
-      - NetworkManager
       - bluez
 
   # ---------------------------------------------------------------------
@@ -36,7 +35,6 @@ modules:
       - gamescope
       - gamemode
       - mangohud
-      - corectrl
 
   # ---------------------------------------------------------------------
   # 4. Ferramentas de pentesting leves
@@ -48,7 +46,7 @@ modules:
       - whois
       - curl
       - wget
-      - bind-utils
+      - traceroute
       - net-tools
 
   # ---------------------------------------------------------------------
@@ -68,6 +66,7 @@ modules:
   - type: rpm-ostree
     install:
       - fastfetch
+
   # ---------------------------------------------------------------------
   # 7. Flatpaks
   # ---------------------------------------------------------------------
@@ -75,35 +74,23 @@ modules:
     notify: true
     system:
       install:
-        # Gaming
-        - net.davidotek.pupgui2
         - com.valvesoftware.Steam
-        - com.heroicgameslauncher.hgl
         - net.lutris.Lutris
-        # Emuladores
         - org.ppsspp.PPSSPP
         - net.pcsx2.PCSX2
         - org.DolphinEmu.dolphin-emu
-        # Criativo
         - org.gimp.GIMP
         - org.inkscape.Inkscape
         - com.github.PintaProject.Pinta
-        # Office
         - org.onlyoffice.desktopeditors
-        # Browser
         - com.brave.Browser
-        # Utilitários
         - com.mattjakeman.ExtensionManager
-        - org.gnome.Resources
+        - net.nokyan.Resources          # was: org.gnome.Resources (wrong ID)
         - org.gnome.Boxes
         - io.github.flattool.Warehouse
-        # Loja
-        - org.gnome.Baobab
         - io.gitlab.adhami3310.Impression
-        # Terminal
         - app.devsuite.Ptyxis
-        # Bazaar (loja)
-        - page.codeberg.Cogitri.Bazaar
+        - io.github.kolunmi.Bazaar      # was: page.codeberg.Cogitri.Bazaar (old/wrong ID)
 
   # ---------------------------------------------------------------------
   # 8. GNOME extensions

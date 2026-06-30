@@ -93,12 +93,12 @@ modules:
         - org.onlyoffice.desktopeditors
         - com.brave.Browser
         - com.mattjakeman.ExtensionManager
-        - org.gnome.Resources
+        - net.nokyan.Resources          # was: org.gnome.Resources (wrong ID)
         - org.gnome.Boxes
         - io.github.flattool.Warehouse
         - io.gitlab.adhami3310.Impression
         - app.devsuite.Ptyxis
-        - page.codeberg.Cogitri.Bazaar
+        - io.github.kolunmi.Bazaar      # was: page.codeberg.Cogitri.Bazaar (old/wrong ID)
 
   # ---------------------------------------------------------------------
   # 9. GNOME extensions
