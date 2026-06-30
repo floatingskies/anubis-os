@@ -89,20 +89,23 @@ fi
 echo "[setup-plymouth] Setting default theme to anubis..."
 plymouth-set-default-theme anubis
 
-# --- COMPILAÇÃO DO INITRAMFS PARA SISMAS ATÔMICOS (rpm-ostree) -----------
-if command -v rpm-ostree &>/dev/null; then
-    echo "[setup-plymouth] Detected rpm-ostree environment. Enabling local initramfs..."
+# --- COMPILAÇÃO DO INITRAMFS PARA SISTEMAS ATÔMICOS (Ublue/BlueBuild) ---
+if command -v dracut &>/dev/null; then
+    echo "[setup-plymouth] Building Plymouth theme directly into initramfs via dracut..."
     
-    # Habilita a geração local permanente do initramfs
-    rpm-ostree initramfs --enable
+    # Em containers OCI/Containerfiles, o dracut precisa saber exatamente qual
+    # versão do kernel alvo usar (o BlueBuild deixa em /lib/modules)
+    KERNEL_VERSION=$(ls /lib/modules | head -n 1)
     
-    # Tenta forçar a reconstrução imediata dos metadados do initramfs se aplicável no stage
-    if command -v dracut &>/dev/null; then
-        echo "[setup-plymouth] Running dracut to bake the theme into the OCI deployment..."
-        dracut -f --regenerate-all || echo "Warning: Dracut execution deferred by ostree lifecycle."
+    if [ -n "$KERNEL_VERSION" ]; then
+        echo "[setup-plymouth] Target kernel detected: $KERNEL_VERSION"
+        dracut -f --kver "$KERNEL_VERSION" --regenerate-all
+    else
+        echo "[setup-plymouth] No active kernel folder found in /lib/modules, running generic dracut..."
+        dracut -f --regenerate-all
     fi
 else
-    # Fallback caso mude de base tradicional no futuro
+    # Fallback para sistemas tradicionais se aplicável fora de containers
     if command -v plymouth-set-default-theme &>/dev/null; then
         plymouth-set-default-theme -R anubis
     fi
