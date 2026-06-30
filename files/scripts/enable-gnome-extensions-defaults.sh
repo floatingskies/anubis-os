@@ -13,6 +13,8 @@ fi
 mkdir -p /etc/dconf/db/local.d
 
 # Ativar todas as extensões instaladas + wallpaper global
+# UUIDs corretos:
+#   paperwm@paperwm.github.com  (PaperWM — UUID oficial no metadata.json)
 cat > /etc/dconf/db/local.d/00-anubis-extensions << 'DCONF'
 [org/gnome/shell]
 enabled-extensions=['dash-to-dock@micxgx.gmail.com', 'appindicatorsupport@rgcjonas.gmail.com', 'blur-my-shell@aunetx', 'logomenu@aryan_k', 'caffeine@patapon.info', 'paperwm@paperwm.github.com']
