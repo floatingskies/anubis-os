@@ -23,6 +23,8 @@ modules:
   - type: rpm-ostree
     install:
       - ffmpeg
+      - distrobox
+      - podman
 
   # ---------------------------------------------------------------------
   # 2. Performance optimizations WITHOUT a custom kernel.
@@ -68,7 +70,8 @@ modules:
   # ---------------------------------------------------------------------
   - type: rpm-ostree
     install:
-      - gedit
+      - gnome-text-editor
+      - gnome-maps
       - ptyxis
       - firefox
 
@@ -76,17 +79,20 @@ modules:
     snippets:
       - flatpak uninstall -y --noninteractive app/org.gnome.Ptyxis/x86_64/stable || true
 
+# ---------------------------------------------------------------------
+  # 6. Pre-baked Flatpaks (Embutidos na ISO / Instalação Offline)
   # ---------------------------------------------------------------------
-  # 6. Flathub remote — kept enabled "just in case" but with nothing
-  #    pre-installed.
-  # ---------------------------------------------------------------------
-  - type: default-flatpaks
-    configurations:
-      - scope: system
-        notify: true
-        repo:
-          url: https://dl.flathub.org/repo/flathub.flatpakrepo
-        install: []
+  - type: flatpaks
+    system:
+      repo: https://dl.flathub.org/repo/flathub.flatpakrepo
+      install:
+        - com.ranfdev.DistroShelf
+        - com.valvesoftware.Steam
+        - org.libretro.RetroArch
+        - com.visualstudio.code
+        - org.gnome.Showtime
+        - io.github.getnf.embellish
+        - org.libreoffice.LibreOffice
 
   # ---------------------------------------------------------------------
   # 7. Everyday user security
