@@ -66,14 +66,9 @@ modules:
   # ---------------------------------------------------------------------
   # 6. Terminal / shell enhancements
   # ---------------------------------------------------------------------
-  - type: script
-    snippets:
-      - dnf5 -y copr enable atim/topgrade
-      
   - type: rpm-ostree
     install:
-      - fastfetch
-      - topgrade
+      - fastfetch  
   # ---------------------------------------------------------------------
   # 7. Flatpaks — baked into the image at build time so the user never
   #    waits for installation on first boot.
