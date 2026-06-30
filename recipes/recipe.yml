@@ -62,9 +62,7 @@ modules:
   #    fwupd handles firmware updates automatically.
   # ---------------------------------------------------------------------
   - type: rpm-ostree
-    install:
-      - akmod-wl
-      - fwupd                 # automatic firmware updates (BIOS/EC/peripheral)
+    install:      - fwupd                 # automatic firmware updates (BIOS/EC/peripheral)
       - NetworkManager        # already in base, kept explicit for clarity
       - bluez                 # Bluetooth auto-detect/pairing
       - plymouth              # boot splash (theme applied in setup-plymouth.sh)
