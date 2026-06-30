@@ -117,8 +117,9 @@ style = "bg:color_aqua fg:color_fg0"
 
 [time]
 disabled = false
-format = '[ $time ]'
+format = '[$time]($style) '
 time_format = "%H:%M"
+style = "bold yellow"
 
 [fill]
 symbol = ' '
