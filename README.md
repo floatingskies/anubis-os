@@ -1,3 +1,6 @@
+<img width="500" height="500" alt="anubis-os" src="https://github.com/user-attachments/assets/14a4ad1b-5c09-4f65-b186-6b246e2f88e3" />
+
+
 # 🌟 anubis-os
 
 [![build-ublue](https://github.com/floatingskies/anubis-os/actions/workflows/build.yml/badge.svg)](https://github.com/floatingskies/anubis-os/actions/workflows/build.yml)
