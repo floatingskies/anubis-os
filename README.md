@@ -1,31 +1,103 @@
-<img width="500" height="500" alt="anubis-os" src="https://github.com/user-attachments/assets/14a4ad1b-5c09-4f65-b186-6b246e2f88e3" />
+anubis-os logo # anubis-os **Uma imagem imutável baseada em Fedora Silverblue para quem quer tudo — sem abrir mão de nada.** [![build
+(https://github.com/floatingskies/anubis-os/actions/workflows/build.yml/badge.svg)](https://github.com/floatingskies/anubis-os/actions
+workflows/build.yml) [![Fedora 44](https://img.shields.io/badge/Fedora-44-51a2da?logo=fedora&logoColor=white)](https://fedoraproject.org/) [
+[Base: Silverblue](https://img.shields.io/badge/Base-Silverblue_Main-3584e4?logo=gnome&logoColor=white)](https:/
+silverblue.fedoraproject.org/) [![Stars](https://img.shields.io/github/stars/floatingskies/anubis-os?style=social)](https://github.com
+floatingskies/anubis-os/stargazers) 
+ O que é isso? 
+O anubis-os é uma imagem OCI customizada construída sobre o Universal Blue — o mesmo projeto base do Bazzite e do Aurora. A ideia é
+simples: ter um sistema que joga, faz pentesting leve e mantém a máquina segura no dia a dia, tudo ao mesmo tempo, sem VMs, sem
+partições extras e sem quebrar nada. 
+O sistema base é atômico e imutável. O que você instala via Flatpak ou Brew fica separado do OS. Atualizações são transacionais — se algo der
+errado, você volta com um comando. 
+ VariantesImagem Para quemanubis-os Hardware genérico x86_64anubis-os-macbook MacBook Air Intel 2013–2017 (Wi-Fi Broadcom) 
+ O que vem incluso 
+🕹️ Gaming 
+Pronto para jogar sem configurar nada. O Wine não está na imagem — tudo roda via Flatpak com Proton, o que mantém o sistema limpo.Pacote FunçãoSteam (Flatpak) Biblioteca + ProtonLutris (Flatpak) GOG, Epic, Battle.netDolphin, PPSSPP, PCSX2 Emuladoresgamemode Otimização de CPU/GPU automáticagamescope Compositor dedicado para jogosmangohud Overlay de performance 
+🔍 Pentesting leve 
+Ferramentas de rede e auditoria direto no terminal, sem quebrar as dependências do sistema operacional. 
+nmap nmap-ncat whois curl wget traceroute net-tools
+ Para ferramentas mais pesadas (sqlmap, hydra, hashcat etc.), a recomendação é usar um container via Toolbox ou Distrobox — assim você
+tem um ambiente dedicado e isolado sem contaminar a base. 
+🔒 Segurança diáriaFerramenta O que fazfirewalld Firewall com controle por zonafirejail Sandboxing de aplicaçõesclamav Antivírusrkhunter + aide Detecção de rootkits e alterações no sistema 
+🎨 GNOME configurado de fábrica 
+Extensões ativas por padrão via dconf — sem ter que entrar no Extension Manager no primeiro boot. 
+Dash to Dock — dock sempre visível
+Blur my Shell — fundo desfocado no launcher e no dash
+PaperWM — gerenciamento de janelas em scroll horizontal (ótimo para monitores ultrawide)
+AppIndicator — ícones de bandeja para apps como Discord e Telegram
+Logo Menu — menu de sistema com a logo do anubis-os
+Caffeine — impede o bloqueio de tela quando necessário 
+🛠️ Terminalfastfetch — informações do sistema ao abrir o terminal
+Oh My Bash — instalado no primeiro boot (sem precisar de internet na hora do rebase)
+Starship — prompt customizado, instalado via curl | sh no primeiro boot ou brew install starship
+Homebrew — gerenciador de pacotes para tudo que não está no rpm-ostree 
+ Instalação 
+Rebase a partir de qualquer sistema Universal Blue ou Silverblue 
+# Imagem genérica
+rpm-ostree rebase ostree-unverified-registry:ghcr.io/floatingskies/anubis-os:44
+ # Imagem para MacBook Air Intel 2013–2017
+rpm-ostree rebase ostree-unverified-registry:ghcr.io/floatingskies/anubis-os-macbook:44
+ Reinicie após o rebase. No próximo boot, o sistema vai rodar o setup de primeiro uso (Oh My Bash, Starship, permissões). 
+Verificar a assinatura da imagem 
+cosign verify ghcr.io/floatingskies/anubis-os \
+--certificate-identity-regexp=https://github.com/floatingskies \
+--certificate-oidc-issuer=https://token.actions.githubusercontent.com
 
+ Primeiro boot 
+O serviço anubis-setup-user roda automaticamente e: 
+Clona o Oh My Bash em ~/.oh-my-bash
+Instala o Starship em ~/.local/bin via instalador oficial
+Aplica o .bashrc e as configs de fastfetch e Starship 
+Se quiser rodar manualmente depois: 
+/usr/share/anubis-os/scripts/setup-ohmybash-user.sh
 
-# 🌟 anubis-os
+ Customização 
+Adicionar pacotes ao sistema base 
+Edite recipe.yml (ou recipe-macbook.yml) e faça rebuild via GitHub Actions. 
+Instalar algo pontualmente sem rebuild 
+# Persistente no sistema base (use com moderação)
+rpm-ostree install <pacote>
+ # Via Homebrew (sem sudo, não toca no OS)
+brew install <pacote>
+ # Via Flatpak (apps com sandbox)
+flatpak install flathub <app-id>
 
-[![build-ublue](https://github.com/floatingskies/anubis-os/actions/workflows/build.yml/badge.svg)](https://github.com/floatingskies/anubis-os/actions/workflows/build.yml)
-![GitHub stars](https://img.shields.io/github/stars/floatingskies/anubis-os?style=social)
-![Image Version](https://img.shields.io/badge/Fedora_Version-44-blue?logo=fedora)
-![Base](https://img.shields.io/badge/Base-Silverblue_Main-informational)
+Ferramentas de pentesting num container isolado 
+# Criar um container Fedora com acesso à rede do host
+distrobox create --name pentest --image fedora:latest
+distrobox enter pentest
+sudo dnf install nmap hydra sqlmap hashcat
+ Estrutura do repositório 
+anubis-os/
+├── recipes/
+│ ├── recipe.yml # imagem genérica
+│ └── recipe-macbook.yml # variante MacBook
+├── files/
+│ └── system/ # arquivos copiados para / na imagem
+│ ├── usr/share/backgrounds/anubis-os/
+│ ├── usr/share/pixmaps/
+│ └── usr/share/plymouth/themes/anubis/
+└── scripts/
+├── set-permissions.sh
+├── setup-hostname.sh
+├── setup-os-release.sh
+├── setup-logo.sh
+├── setup-plymouth.sh
+├── setup-wallpaper.sh
+├── setup-ohmybash.sh
+├── enable-gnome-extensions-defaults.sh
+└── enable-first-boot-units.sh
 
-> **O canivete suíço definitivo para o dia a dia.** Uma imagem customizada e imutável baseada no Fedora Silverblue (via Universal Blue), projetada para quem quer jogar sem dor de cabeça, fazer pentesting leve de forma isolada e manter a máquina segura no uso diário.
+ Build local 
+# Instalar o BlueBuild CLI
+brew install blue-build/tap/bluebuild
+# ou
+cargo install blue-build
+ # Build
+bluebuild build recipes/recipe.yml
 
----
-
-## 🛠️ O que é o anubis-os?
-
-O **anubis-os** nasceu daquela clássica vontade de *hobbyist* de não querer ter três sistemas operacionais ou VMs diferentes para tarefas do cotidiano. Em vez de quebrar o sistema instalando dezenas de pacotes de auditoria diretamente na base, esta imagem traz um ecossistema híbrido, limpo e atômico.
-
-* **🕹️ Gaming:** Pronto para o play via Flatpak (Steam, Lutris, Heroic) e otimizado com `gamemode` e `gamescope`. Nada de Wine poluindo o sistema base.
-* **🛡️ Pentesting Leve:** Ferramentas essenciais direto no terminal (`nmap`, `masscan`, `sqlmap`, `hydra`, `hashcat`) para auditorias rápidas sem quebrar as dependências do OS.
-* **🔒 Segurança Hardened:** Camada extra de proteção diária com `firewalld`, `firejail` para sandboxing, além de `clamav` e `rkhunter`.
-* **🎨 GNOME Moderno:** Visual refinado de fábrica usando extensões consagradas como *Blur my Shell*, *Dash to Dock* e *PaperWM* para produtividade máxima.
-
----
-
-## 🚀 Como Instalar / Rebasear
-
-Se você já está em um sistema baseado em Universal Blue ou Fedora Silverblue, pode rebasear diretamente para o **anubis-os** com o comando abaixo:
-
-```bash
-rpm-ostree rebase ostree-unverified-registry:ghcr.io/SEU_USUARIO/anubis-os:44
+ Contribuindo 
+Issues e PRs são bem-vindos. Se encontrou um Flatpak com ID errado, um script quebrando no build ou uma extensão com UUID desatualizado
+— abre uma issue. 
+ Feito com [Universal Blue](https://universal-blue.org/) · Baseado em [Fedora Silverblue](https://silverblue.fedoraproject.org/)
