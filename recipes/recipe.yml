@@ -12,27 +12,21 @@ image-version: "44"
 modules:
 
   # ---------------------------------------------------------------------
-  # 1. Freeworld codecs & drivers
-  #    RPM Fusion is already enabled in the ublue-os/silverblue-main base
-  #    image. However the base image also ships a `fedora-multimedia` repo
-  #    from negativo17.org which 404s on Fedora 42 and causes every dnf
-  #    operation to fail. Disable it first, then install from RPM Fusion.
+  # 1. Repositories Cleanup & Base Codecs
+  #    Remove o repositório multimedia antigo da negativo17 que causa 404
+  #    e instala o ffmpeg completo para suporte a codecs de mídia.
   # ---------------------------------------------------------------------
   - type: script
     snippets:
-      # The base image ships a negativo17 fedora-multimedia repo that 404s
-      # on Fedora 42. Remove it, then install the RPM Fusion release RPMs
-      # directly by URL so their repos are available for all later steps.
-      - echo 'cache-bust-2'
       - grep -rl 'negativo17.org' /etc/yum.repos.d/ | xargs rm -f
-      - VER=$(rpm -E %fedora) && rpm-ostree install --idempotent https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${VER}.noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${VER}.noarch.rpm
 
   - type: rpm-ostree
     install:
       - ffmpeg
 
-# ---------------------------------------------------------------------
+  # ---------------------------------------------------------------------
   # 2. Performance optimizations WITHOUT a custom kernel.
+  #    Usa o COPR bieszczaders para buscar o scx-scheds de forma nativa.
   # ---------------------------------------------------------------------
   - type: rpm-ostree
     repos:
@@ -63,12 +57,13 @@ modules:
       - dracut-tools
 
   # ---------------------------------------------------------------------
-  # 4. Gaming support (rpm-only, no Flatpak)
+  # 4. Gaming support (rpm-only, NO LUTRIS, NO STEAM inside base)
   # ---------------------------------------------------------------------
   - type: rpm-ostree
     install:
       - gamescope
-      # ---------------------------------------------------------------------
+
+  # ---------------------------------------------------------------------
   # 5. DIY / minimal GNOME-core application set.
   # ---------------------------------------------------------------------
   - type: rpm-ostree
@@ -120,12 +115,12 @@ modules:
       - PaperWM
 
   # ---------------------------------------------------------------------
-  # 9. Homebrew (brew-oci layer) — kept as requested.
+  # 9. Homebrew (brew-oci layer)
   # ---------------------------------------------------------------------
   - type: brew
 
   # ---------------------------------------------------------------------
-  # 10. Wallpapers, dconf defaults, ujust files, first-boot wallpaper unit
+  # 10. Wallpapers, dconf defaults, ujust files, script setups
   # ---------------------------------------------------------------------
   - type: files
     files:
