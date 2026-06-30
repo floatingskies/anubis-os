@@ -18,5 +18,4 @@ LOGO=anubis-logo
 ANSI_COLOR="0;38;2;139;92;246"
 OSRELEASE
 
-ln -sf /usr/lib/os-release /etc/os-release
 echo "[setup-os-release] Done."
