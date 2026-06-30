@@ -4,7 +4,7 @@
 
 # anubis-os
 
-**Uma imagem imutável baseada em Fedora Silverblue para quem quer tudo — sem abrir mão de nada.**
+**Uma imagem imutável baseada em Fedora Silverblue, feita por hobby pra rodar jogo, trabalhar e dormir tranquilo.**
 
 [![build](https://github.com/floatingskies/anubis-os/actions/workflows/build.yml/badge.svg)](https://github.com/floatingskies/anubis-os/actions/workflows/build.yml)
 [![Fedora 44](https://img.shields.io/badge/Fedora-44-51a2da?logo=fedora&logoColor=white)](https://fedoraproject.org/)
@@ -17,9 +17,11 @@
 
 ## O que é isso?
 
-O **anubis-os** é uma imagem OCI customizada construída sobre o [Universal Blue](https://universal-blue.org/) — o mesmo projeto base do Bazzite e do Aurora. A ideia é simples: ter um sistema que joga, faz pentesting leve e mantém a máquina segura no dia a dia, tudo ao mesmo tempo, sem VMs, sem partições extras e sem quebrar nada.
+O **anubis-os** começou como um projeto de fim de semana em cima do [Universal Blue](https://universal-blue.org/) — o mesmo projeto base do Bazzite e do Aurora — e foi crescendo até virar o sistema que uso todo dia. A ideia é ter uma imagem que joga bem, trabalha bem e não dá dor de cabeça com segurança básica, sem precisar de VM, partição extra ou ficar remendando o sistema toda semana.
 
-O sistema base é atômico e imutável. O que você instala via Flatpak ou Brew fica separado do OS. Atualizações são transacionais — se algo der errado, você volta com um comando.
+A base é atômica e imutável: o que você instala via Flatpak ou Brew fica separado do OS, e as atualizações são transacionais — se algo quebrar, você volta com um comando e segue a vida.
+
+Não é distro de empresa nem promete ser a próxima Bazzite. É um recipe.yml mantido por uma pessoa só que gosta de mexer nisso.
 
 ---
 
@@ -34,55 +36,62 @@ O sistema base é atômico e imutável. O que você instala via Flatpak ou Brew 
 
 ## O que vem incluso
 
-### 🕹️ Gaming
+### Gaming e produtividade, sem escolher um dos dois
 
-Pronto para jogar sem configurar nada. O Wine não está na imagem — tudo roda via Flatpak com Proton, o que mantém o sistema limpo.
+A ideia aqui não é "PC de jogo" de um lado e "PC de trabalho" do outro — é a mesma máquina fazendo as duas coisas bem. Steam e Lutris já vêm prontos, o sistema ajusta prioridade de processo e energia automaticamente quando um jogo abre (`gamemode` + `ananicy-cpp`), e quando você fecha o jogo e abre o LibreOffice ou o VS Code, ninguém percebe diferença — não tem nenhum modo especial pra ligar e desligar.
+
+O Wine não fica na imagem base: tudo de Proton/Wine roda via Flatpak (Steam, Lutris, Bottles), o que mantém o sistema base limpo e fácil de fazer rollback se algo bugar.
 
 | Pacote | Função |
 |--------|--------|
-| Steam (Flatpak) | Biblioteca + Proton |
-| Lutris (Flatpak) | GOG, Epic, Battle.net |
-| Dolphin, PPSSPP, PCSX2 | Emuladores |
-| `gamemode` | Otimização de CPU/GPU automática |
+| Steam, Lutris, Bottles (Flatpak) | Lojas, Proton e compatibilidade com Windows |
+| ProtonUp-Qt | Instala e gerencia versões do Proton-GE/Wine-GE |
+| `gamemode` | Otimização de CPU/GPU automática enquanto o jogo roda |
 | `gamescope` | Compositor dedicado para jogos |
-| `mangohud` | Overlay de performance |
+| `mangohud` + GOverlay | Overlay de performance e a GUI pra configurar ele |
+| `ananicy-cpp` | Prioriza automaticamente processos pesados (jogos, compilação etc.) |
+| `steam-devices` | Regras de udev pra controle funcionar de primeira |
+| `zram-generator-defaults` + `thermald` | Ajuda em máquina com pouca RAM ou mais velha a aquecer/travar menos |
 
-### 🔍 Pentesting leve
+E pro dia a dia "sério", já vem LibreOffice, VS Code e GIMP pré-instalados via Flatpak.
 
-Ferramentas de rede e auditoria direto no terminal, sem quebrar as dependências do sistema operacional.
+### Pentesting leve, sem virar Kali
+
+Ferramentas básicas de rede e auditoria direto no terminal, sem mexer nas dependências do sistema:
 
 ```
 nmap  nmap-ncat  whois  curl  wget  traceroute  net-tools
 ```
 
-Para ferramentas mais pesadas (`sqlmap`, `hydra`, `hashcat` etc.), a recomendação é usar um container via **Toolbox** ou **Distrobox** — assim você tem um ambiente dedicado e isolado sem contaminar a base.
+Pra ferramenta mais pesada (`sqlmap`, `hydra`, `hashcat` etc.), a recomendação é container via **Toolbox** ou **Distrobox** — mantém isolado e não suja a base.
 
-### 🔒 Segurança diária
+### Segurança do dia a dia
+
+Nada de ferramenta de auditoria pensada pra servidor — só o básico que faz sentido numa máquina pessoal:
 
 | Ferramenta | O que faz |
 |------------|-----------|
 | `firewalld` | Firewall com controle por zona |
 | `firejail` | Sandboxing de aplicações |
 | `clamav` | Antivírus |
-| `rkhunter` + `aide` | Detecção de rootkits e alterações no sistema |
 
-### 🎨 GNOME configurado de fábrica
+### GNOME já configurado
 
-Extensões ativas por padrão via dconf — sem ter que entrar no Extension Manager no primeiro boot.
+Extensões ativas por padrão via dconf, sem precisar abrir o Extension Manager no primeiro boot:
 
 - **Dash to Dock** — dock sempre visível
 - **Blur my Shell** — fundo desfocado no launcher e no dash
-- **PaperWM** — gerenciamento de janelas em scroll horizontal (ótimo para monitores ultrawide)
-- **AppIndicator** — ícones de bandeja para apps como Discord e Telegram
+- **PaperWM** — janelas em scroll horizontal (bom pra quem usa ultrawide)
+- **AppIndicator** — ícone de bandeja pra Discord, Telegram etc.
 - **Logo Menu** — menu de sistema com a logo do anubis-os
-- **Caffeine** — impede o bloqueio de tela quando necessário
+- **Caffeine** — impede o bloqueio de tela quando precisa
 
-### 🛠️ Terminal
+### Terminal
 
-- **fastfetch** — informações do sistema ao abrir o terminal
-- **Oh My Bash** — instalado no primeiro boot (sem precisar de internet na hora do rebase)
-- **Starship** — prompt customizado, instalado via `curl | sh` no primeiro boot ou `brew install starship`
-- **Homebrew** — gerenciador de pacotes para tudo que não está no rpm-ostree
+- **fastfetch** — informação do sistema ao abrir o terminal
+- **Oh My Bash** — instalado no primeiro boot, sem depender de internet na hora do rebase
+- **Starship** — prompt customizado, instalado no primeiro boot ou via `brew install starship`
+- **Homebrew** — pra tudo que não faz sentido ir pro rpm-ostree
 
 ---
 
@@ -98,7 +107,7 @@ rpm-ostree rebase ostree-unverified-registry:ghcr.io/floatingskies/anubis-os:44
 rpm-ostree rebase ostree-unverified-registry:ghcr.io/floatingskies/anubis-os-macbook:44
 ```
 
-Reinicie após o rebase. No próximo boot, o sistema vai rodar o setup de primeiro uso (Oh My Bash, Starship, permissões).
+Reinicie após o rebase. No próximo boot, o sistema roda o setup de primeiro uso (Oh My Bash, Starship, permissões).
 
 ### Verificar a assinatura da imagem
 
@@ -198,7 +207,7 @@ bluebuild build recipes/recipe.yml
 
 ## Contribuindo
 
-Issues e PRs são bem-vindos. Se encontrou um Flatpak com ID errado, um script quebrando no build ou uma extensão com UUID desatualizado — abre uma issue.
+Isso aqui é projeto de hobby, então vai no ritmo que dá — mas issues e PRs são bem-vindos. Achou um Flatpak com ID errado, um script quebrando no build ou uma extensão com UUID desatualizado? Abre uma issue.
 
 ---
 
