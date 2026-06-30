@@ -117,7 +117,7 @@ modules:
   # ---------------------------------------------------------------------
   - type: brew
 
-  # ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
   # 11. Arquivos do sistema
   # ---------------------------------------------------------------------
   - type: files
@@ -125,7 +125,7 @@ modules:
       - source: system
         destination: /
 
-   - type: script
+  - type: script
     scripts:
       - enable-first-boot-units.sh
       - setup-hostname.sh
@@ -135,7 +135,7 @@ modules:
       - setup-wallpaper.sh
       - setup-ohmybash.sh
       - enable-gnome-extensions-defaults.sh
-      - set-permissions.sh      
+      - set-permissions.sh
 
   # ---------------------------------------------------------------------
   # 12. Signing
