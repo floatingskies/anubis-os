@@ -14,14 +14,16 @@ modules:
   - type: script
     snippets:
       - grep -rl 'negativo17.org' /etc/yum.repos.d/ | xargs rm -f
-
+  # ------------------------------ 
   - type: rpm-ostree
     install:
       - ffmpeg
     remove:
       - gnome-software
-      - ptyxis                     # Terminal padrão no Fedora Silverblue 40+
-      - gnome-terminal             # Terminal padrão em versões anteriores
+      - ptyxis
+      - gnome-terminal
+      - gnome-terminal-nautilus
+    allow-inactive: true # <-- ISSO AQUI EVITA O ERRO!
   # ---------------------------------------------------------------------
   # 2. Hardware geral
   # ---------------------------------------------------------------------
