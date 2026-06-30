@@ -9,20 +9,22 @@ image-version: "44"
 modules:
 
   # ---------------------------------------------------------------------
-  # 1. Remover repo negativo17 quebrado no Fedora 44
+  # 1. Ajustes de Pacotes do Sistema (Remoções e Repositórios)
   # ---------------------------------------------------------------------
   - type: script
     snippets:
       - grep -rl 'negativo17.org' /etc/yum.repos.d/ | xargs rm -f 
+
   - type: rpm-ostree
     install:
       - ffmpeg
     remove:
       - gnome-software
 
-    - type: script
-      snippets:
-        - rpm-ostree override remove ptyxis --if-exists
+  - type: script
+    snippets:
+      - rpm-ostree override remove ptyxis --if-exists
+
   # ---------------------------------------------------------------------
   # 2. Hardware geral
   # ---------------------------------------------------------------------
@@ -41,7 +43,7 @@ modules:
       - mangohud
 
   # ---------------------------------------------------------------------
-  # 4. Ferramentas de pentesting leves
+  # 4. Ferramentas de pentesting leves e utilitários
   # ---------------------------------------------------------------------
   - type: rpm-ostree
     install:
@@ -52,6 +54,7 @@ modules:
       - wget
       - traceroute
       - net-tools
+      - fastfetch
 
   # ---------------------------------------------------------------------
   # 5. Everyday user security
@@ -64,17 +67,8 @@ modules:
       - aide
       - firejail
 
-
-
   # ---------------------------------------------------------------------
-  # 6. Terminal / shell enhancements
-  # ---------------------------------------------------------------------
-  - type: rpm-ostree
-    install:
-      - fastfetch  
-  # ---------------------------------------------------------------------
-  # 7. Flatpaks — baked into the image at build time so the user never
-  #    waits for installation on first boot.
+  # 6. Flatpaks — baked into the image at build time
   # ---------------------------------------------------------------------
   - type: default-flatpaks@v1
     notify: true
@@ -101,7 +95,7 @@ modules:
         - io.github.kolunmi.Bazaar
 
   # ---------------------------------------------------------------------
-  # 8. GNOME extensions
+  # 7. GNOME extensions
   # ---------------------------------------------------------------------
   - type: gnome-extensions
     install:
@@ -112,12 +106,13 @@ modules:
       - Caffeine
       - PaperWM
 
-# ---------------------------------------------------------------------
-  # 9. Homebrew
+  # ---------------------------------------------------------------------
+  # 8. Homebrew
   # ---------------------------------------------------------------------
   - type: brew
+
   # ---------------------------------------------------------------------
-  # 10. Arquivos do sistema
+  # 9. Arquivos do sistema e Scripts de Customização
   # ---------------------------------------------------------------------
   - type: files
     files:
@@ -137,6 +132,6 @@ modules:
       - set-permissions.sh
 
   # ---------------------------------------------------------------------
-  # 11. Signing
+  # 10. Signing
   # ---------------------------------------------------------------------
   - type: signing
