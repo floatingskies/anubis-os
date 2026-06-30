@@ -68,7 +68,6 @@ modules:
   - type: rpm-ostree
     install:
       - gamescope
-      - steam
       # ---------------------------------------------------------------------
   # 5. DIY / minimal GNOME-core application set.
   # ---------------------------------------------------------------------
