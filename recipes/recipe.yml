@@ -88,11 +88,18 @@ modules:
         install:
           - com.ranfdev.DistroShelf
           - com.valvesoftware.Steam
+          - net.lutris.Lutris
           - org.libretro.RetroArch
           - com.visualstudio.code
           - org.gnome.Showtime
           - io.github.getnf.embellish
           - org.libreoffice.LibreOffice
+          - com.mattjakeman.ExtensionManager
+          - org.gimp.GIMP
+          - com.usebottles.bottles
+          - io.github.kolunmi.Bazaar
+          - net.nokyan.Resources
+
 
   # ---------------------------------------------------------------------
   # 7. Everyday user security
