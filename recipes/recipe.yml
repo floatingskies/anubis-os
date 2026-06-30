@@ -68,7 +68,6 @@ modules:
   # ---------------------------------------------------------------------
   - type: rpm-ostree
     install:
-      - gnome-core
       - gedit
       - ptyxis
       - firefox
