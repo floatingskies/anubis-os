@@ -74,10 +74,7 @@ modules:
       - gnome-maps
       - ptyxis
       - firefox
-
-  - type: script
-    snippets:
-      - flatpak uninstall -y --noninteractive app/org.gnome.Ptyxis/x86_64/stable || true
+      - fastfetch
 
 # ---------------------------------------------------------------------
   # 6. Pre-baked Flatpaks (Embutidos na ISO / Instalação Offline)
