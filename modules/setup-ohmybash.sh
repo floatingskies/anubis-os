@@ -37,40 +37,111 @@ BASHRC
 mkdir -p /etc/skel/.config/fastfetch
 cat > /etc/skel/.config/fastfetch/config.jsonc << 'FFCONF'
 {
-    "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
-    "logo": {
-        "source": "/usr/share/pixmaps/anubis-logo.png",
-        "type": "kitty",
-        "width": 24,
-        "height": 12
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+
+  "logo": {
+    "type": "file",
+    "source": "/usr/share/fastfetch/anubis-ascii.txt",
+    "width": 67,
+    "height": 33,
+    "padding": {
+      "top": 1,
+      "right": 4
     },
-    "display": {
-        "color": {
-            "keys": "magenta",
-            "title": "magenta"
-        }
+    "color": {
+      "1": "yellow"
+    }
+  },
+
+  "display": {
+    "separator": " ➜ ",
+    "color": {
+      "keys": "magenta",
+      "title": "yellow"
     },
-    "modules": [
-        "title",
-        "separator",
-        "os",
-        "host",
-        "kernel",
-        "uptime",
-        "shell",
-        "display",
-        "de",
-        "wm",
-        "terminal",
-        "cpu",
-        "gpu",
-        "memory",
-        "disk",
-        "battery",
-        "break",
-        "colors"
-    ]
+    "key": {
+      "width": 14
+    },
+    "size": {
+      "binaryPrefix": "si"
+    }
+  },
+
+  "modules": [
+    {
+      "type": "custom",
+      "format": "┌──────────────────────────────────┐"
+    },
+    {
+      "type": "title",
+      "key": " 󰣇 ",
+      "format": "Anubis Linux session"
+    },
+    {
+      "type": "custom",
+      "format": "└──────────────────────────────────┘"
+    },
+    {
+      "type": "os",
+      "key": " 󰣛 OS"
+    },
+    {
+      "type": "kernel",
+      "key": " 󰒋 Kernel"
+    },
+    {
+      "type": "uptime",
+      "key": " 󰅐 Uptime"
+    },
+    {
+      "type": "packages",
+      "key": " 󰏗 Packages"
+    },
+    {
+      "type": "de",
+      "key": " 󰧨 Desktop"
+    },
+    {
+      "type": "wm",
+      "key": " 󱂬 WM"
+    },
+    {
+      "type": "shell",
+      "key": " 󰆍 Shell"
+    },
+    {
+      "type": "terminal",
+      "key": "  Terminal"
+    },
+    "break",
+    {
+      "type": "cpu",
+      "key": "  CPU"
+    },
+    {
+      "type": "gpu",
+      "key": " 󰢮 GPU"
+    },
+    {
+      "type": "memory",
+      "key": " 󰍛 Memory"
+    },
+    {
+      "type": "disk",
+      "key": " 󰋊 Disk",
+      "folders": "/"
+    },
+    "break",
+    {
+      "type": "colors",
+      "symbol": "circle"
+    }
+
+    // Deliberately omitted for privacy — see header note:
+    // "localip", "publicip", "weather", "bluetooth", "wifi"
+  ]
 }
+
 FFCONF
 
 # Starship config padrão
