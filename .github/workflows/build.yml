@@ -1,14 +1,16 @@
 name: Build anubis-os images
+
 on:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
       - "recipes/**"
       - "files/**"
       - "modules/**"
       - ".github/workflows/build.yml"
   schedule:
-    cron: "0 6 * * 1"
+    - cron: "0 6 * * 1"
   workflow_dispatch:
 
 jobs:
@@ -18,7 +20,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-      id-token: write # CRUCIAL: Permite que o Cosign valide a identidade do GitHub sem chave privada fixa
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,5 +31,3 @@ jobs:
           recipe: recipe.yml
           registry_token: ${{ secrets.GITHUB_TOKEN }}
           pr_event_number: ${{ github.event.number }}
-          # REMOVIDO: build_opts: "--no-sign" (Agora ele vai assinar por padrão)
-          # REMOVIDO: cosign_private_key: "" (Deixando vazio ou oculto força o modo Keyless via Sigstore)
