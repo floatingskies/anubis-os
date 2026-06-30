@@ -13,20 +13,12 @@ on:
 
 jobs:
   build:
-    name: Build (${{ matrix.recipe }})
+    name: Build (anubis-os)
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
       id-token: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - recipe: recipe.yml
-            artifact: anubis-os
-          - recipe: recipe-macbook.yml
-            artifact: anubis-os-macbook
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,7 +26,7 @@ jobs:
       - name: Build image
         uses: blue-build/github-action@v1
         with:
-          recipe: ${{ matrix.recipe }}
+          recipe: recipe.yml
           cosign_private_key: ""
           registry_token: ${{ secrets.GITHUB_TOKEN }}
           pr_event_number: ${{ github.event.number }}
