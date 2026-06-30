@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Sobrescreve o os-release para mostrar Anubis OS em vez de Fedora
-# em: GNOME Settings > About, GDM, neofetch, fastfetch, etc.
 cat > /usr/lib/os-release << 'OSRELEASE'
 NAME="Anubis OS"
 PRETTY_NAME="Anubis OS 44"
@@ -19,5 +17,5 @@ LOGO=anubis-logo
 ANSI_COLOR="0;38;2;139;92;246"
 OSRELEASE
 
-# Symlink /etc/os-release → /usr/lib/os-release (padrão systemd)
+# Standard systemd symlink
 ln -sf /usr/lib/os-release /etc/os-release

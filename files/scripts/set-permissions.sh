@@ -4,12 +4,14 @@ set -euo pipefail
 # Ensure custom .just files are readable in the ujust menu
 chmod 644 /usr/share/ublue-os/just/60-anubis.just
 
-# Sysctl hardening drop-in ships disabled-by-default (commented), readable by all
+# Sysctl hardening drop-in
 chmod 644 /etc/sysctl.d/80-anubis-hardening.conf
 
 # Wallpaper picker script + unit
 chmod 755 /usr/share/anubis-os/scripts/anubis-pick-wallpaper.sh
+chmod 755 /usr/share/anubis-os/scripts/setup-ohmybash-user.sh
 chmod 644 /usr/lib/systemd/system/anubis-first-boot-wallpaper.service
+chmod 644 /usr/lib/systemd/system/anubis-setup-user.service
 chmod 644 /usr/share/backgrounds/anubis-os/*
 
 # GNOME extensions default-enable dconf override
@@ -26,8 +28,11 @@ chmod 644 /usr/share/plymouth/themes/anubis/*
 # Fastfetch config
 chmod 644 /etc/skel/.config/fastfetch/config.jsonc
 
-# Oh My Bash user-setup script (runs at first boot)
-chmod 755 /usr/share/anubis-os/scripts/setup-ohmybash-user.sh
+# Logo Menu extension logo — guard in case extension isn't installed
+if [[ -f /usr/share/gnome-shell/extensions/logomenu@aryan_k/media/logo.svg ]]; then
+    chmod 644 /usr/share/gnome-shell/extensions/logomenu@aryan_k/media/logo.svg
+fi
 
-# Logo Menu extension logo
-chmod 644 /usr/share/gnome-shell/extensions/logomenu@aryan_k/media/logo.svg
+# Update launcher
+chmod 644 /usr/share/applications/anubis-update.desktop
+chmod 644 /usr/share/icons/hicolor/scalable/apps/anubis-update.svg
