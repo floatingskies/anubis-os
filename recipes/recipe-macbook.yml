@@ -36,7 +36,7 @@ modules:
       - bluez
 
   # ---------------------------------------------------------------------
-  # 4. Gaming (sem wine — gerenciado via Flatpak/Proton)
+  # 4. Gaming
   # ---------------------------------------------------------------------
   - type: rpm-ostree
     install:
@@ -74,13 +74,16 @@ modules:
   - type: rpm-ostree
     install:
       - fastfetch
+      - topgrade
 
   # ---------------------------------------------------------------------
-  # 8. Flatpaks
+  # 8. Flatpaks — baked into the image at build time
   # ---------------------------------------------------------------------
   - type: default-flatpaks@v1
     notify: true
     system:
+      repo-url: https://dl.flathub.org/repo/flathub.flatpakrepo
+      repo-name: flathub
       install:
         - com.valvesoftware.Steam
         - net.lutris.Lutris
@@ -93,12 +96,12 @@ modules:
         - org.onlyoffice.desktopeditors
         - com.brave.Browser
         - com.mattjakeman.ExtensionManager
-        - net.nokyan.Resources          # was: org.gnome.Resources (wrong ID)
+        - net.nokyan.Resources
         - org.gnome.Boxes
         - io.github.flattool.Warehouse
         - io.gitlab.adhami3310.Impression
         - app.devsuite.Ptyxis
-        - io.github.kolunmi.Bazaar      # was: page.codeberg.Cogitri.Bazaar (old/wrong ID)
+        - io.github.kolunmi.Bazaar
 
   # ---------------------------------------------------------------------
   # 9. GNOME extensions
@@ -117,7 +120,7 @@ modules:
   # ---------------------------------------------------------------------
   - type: brew
 
-# ---------------------------------------------------------------------
+  # ---------------------------------------------------------------------
   # 11. Arquivos do sistema
   # ---------------------------------------------------------------------
   - type: files
