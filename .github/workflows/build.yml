@@ -10,8 +10,8 @@ on:
       - "modules/**"
       - ".github/workflows/build.yml"
   schedule:
-    - cron: "0 6 * * 1"
-  workflow_dispatch:
+    - cron: "0 6 * * 1" # Roda automaticamente toda segunda-feira às 06:00 UTC
+  workflow_dispatch: # Permite que você clique em "Run workflow" manualmente no GitHub
 
 jobs:
   build:
@@ -31,3 +31,4 @@ jobs:
           recipe: recipe.yml
           registry_token: ${{ secrets.GITHUB_TOKEN }}
           pr_event_number: ${{ github.event.number }}
+          cosign_private_key: ${{ secrets.COSIGN_PRIVATE_KEY }}
