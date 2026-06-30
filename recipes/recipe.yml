@@ -31,10 +31,12 @@ modules:
     install:
       - ffmpeg
 
-  # ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
   # 2. Performance optimizations WITHOUT a custom kernel.
   # ---------------------------------------------------------------------
   - type: rpm-ostree
+    repos:
+      - https://copr.fedorainfracloud.org/coprs/bieszczaders/kernel-cachyos-addons/repo/fedora-%OS_VERSION%/bieszczaders-kernel-cachyos-addons-fedora-%OS_VERSION%.repo
     install:
       - tuned
       - tuned-ppd
