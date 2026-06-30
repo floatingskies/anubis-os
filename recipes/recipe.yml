@@ -127,6 +127,7 @@ modules:
   - type: script
     scripts:
       - set-permissions.sh
+      - setup-os-release.sh
       - enable-first-boot-units.sh
       - enable-gnome-extensions-defaults.sh
       - setup-logo.sh
