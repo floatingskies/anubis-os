@@ -94,7 +94,7 @@ cat > /etc/skel/.config/starship.toml << 'STARSHIP'
 
 format = """
 [░▒▓](color_orange)\
-[ 🐺 $os ](bg:color_orange fg:color_fg0)\
+[ $os ](bg:color_orange fg:color_fg0)\
 [](bg:color_yellow fg:color_orange)\
 [ $directory ](bg:color_yellow fg:color_fg0)\
 [](fg:color_yellow bg:color_aqua)\
@@ -131,7 +131,7 @@ style = "bg:color_aqua fg:color_fg0"
 
 [time]
 disabled = false
-format = '[ $time ]'
+format = '[$time] '
 time_format = "%H:%M"
 
 [fill]
