@@ -103,17 +103,17 @@ modules:
       # pre-installed.
       - flatpak uninstall -y --noninteractive app/org.gnome.Ptyxis/x86_64/stable || true
 
-  # ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
   # 6. Flathub remote — kept enabled "just in case" but with nothing
-  #    pre-installed. The base app set (section 5 above) is intentionally
-  #    rpm-only/gnome-core; this just leaves the door open for the user
-  #    to `flatpak install` whatever they want later without extra setup.
+  #    pre-installed.
   # ---------------------------------------------------------------------
   - type: default-flatpaks
-    notify: true
-    system:
-      repo-url: https://dl.flathub.org/repo/flathub.flatpakrepo
-      install: []
+    configurations:
+      - scope: system
+        notify: true
+        repo:
+          url: https://dl.flathub.org/repo/flathub.flatpakrepo
+        install: []
 
   # ---------------------------------------------------------------------
   # 7. Everyday user security (NOT pentesting tools — defensive/privacy
