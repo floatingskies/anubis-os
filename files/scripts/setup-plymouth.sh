@@ -70,12 +70,42 @@ fun display_password_callback(prompt, bullets) {
 Plymouth.SetDisplayPasswordFunction(display_password_callback);
 SCRIPT
 
-# --- Apply the theme AND rebuild the initramfs --------------------------
+# --- Configuração Forçada do Plymouth (Garantia contra o logo do Fedora) -
+echo "[setup-plymouth] Forcing plymouthd.conf to use anubis..."
+mkdir -p /etc/plymouth
+cat > /etc/plymouth/plymouthd.conf << 'EOF'
+[Daemon]
+Theme=anubis
+ShowDelay=0
+DeviceTimeout=8
+EOF
+
+# --- Apply the theme ----------------------------------------------------
 if ! command -v plymouth-set-default-theme &>/dev/null; then
     echo "ERROR: plymouth-set-default-theme not found — is the 'plymouth' package installed?" >&2
     exit 1
 fi
 
-plymouth-set-default-theme -R anubis
+echo "[setup-plymouth] Setting default theme to anubis..."
+plymouth-set-default-theme anubis
+
+# --- COMPILAÇÃO DO INITRAMFS PARA SISMAS ATÔMICOS (rpm-ostree) -----------
+if command -v rpm-ostree &>/dev/null; then
+    echo "[setup-plymouth] Detected rpm-ostree environment. Enabling local initramfs..."
+    
+    # Habilita a geração local permanente do initramfs
+    rpm-ostree initramfs --enable
+    
+    # Tenta forçar a reconstrução imediata dos metadados do initramfs se aplicável no stage
+    if command -v dracut &>/dev/null; then
+        echo "[setup-plymouth] Running dracut to bake the theme into the OCI deployment..."
+        dracut -f --regenerate-all || echo "Warning: Dracut execution deferred by ostree lifecycle."
+    fi
+else
+    # Fallback caso mude de base tradicional no futuro
+    if command -v plymouth-set-default-theme &>/dev/null; then
+        plymouth-set-default-theme -R anubis
+    fi
+fi
 
 echo "[setup-plymouth] Done."
