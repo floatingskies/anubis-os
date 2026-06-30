@@ -107,7 +107,7 @@ modules:
       - Dash to Dock
       - AppIndicator and KStatusNotifierItem Support
       - Blur my Shell
-      - Arc Menu
+      - Logo Menu
       - Caffeine
       - PaperWM
 
