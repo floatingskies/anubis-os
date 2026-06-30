@@ -125,9 +125,8 @@ modules:
       - source: system
         destination: /
 
-  - type: script
+   - type: script
     scripts:
-      - set-permissions.sh
       - enable-first-boot-units.sh
       - setup-hostname.sh
       - setup-os-release.sh
@@ -136,6 +135,7 @@ modules:
       - setup-wallpaper.sh
       - setup-ohmybash.sh
       - enable-gnome-extensions-defaults.sh
+      - set-permissions.sh      
 
   # ---------------------------------------------------------------------
   # 12. Signing
