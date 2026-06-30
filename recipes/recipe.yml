@@ -7,7 +7,7 @@ base-image: ghcr.io/ublue-os/silverblue-main
 image-version: "44"
 
 modules:
-# ---------------------------------------------------------------------
+  # ---------------------------------------------------------------------
   # 1. Ajustes de Pacotes do Sistema (Remoções e Repositórios)
   # ---------------------------------------------------------------------
   - type: script
@@ -17,9 +17,12 @@ modules:
   - type: rpm-ostree
     install:
       - ffmpeg
+      - distrobox
     remove:
       - gnome-software
       - ptyxis
+      - firefox
+      - firefox-langpacks
 
   # ---------------------------------------------------------------------
   # 2. Hardware geral
@@ -89,6 +92,7 @@ modules:
         - io.gitlab.adhami3310.Impression
         - app.devsuite.Ptyxis
         - io.github.kolunmi.Bazaar
+        - com.ranfdev.DistroShelf
 
   # ---------------------------------------------------------------------
   # 7. GNOME extensions
