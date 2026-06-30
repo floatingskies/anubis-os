@@ -1,17 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
+trap 'echo "[setup-wallpaper] FAILED at line $LINENO" >&2' ERR
 
 WALLPAPER_DIR=/usr/share/backgrounds/anubis-os
 mkdir -p "$WALLPAPER_DIR"
 
-# ── Remove GNOME / Fedora stock wallpapers ────────────────────────────────
+# Remove GNOME / Fedora stock wallpapers
 rm -rf /usr/share/backgrounds/gnome
-rm -rf /usr/share/backgrounds/f[0-9]*   # Fedora versioned dirs e.g. f44
-# Remove stray .xml files for stock content in the system backgrounds dir
-find /usr/share/backgrounds -maxdepth 1 -name "*.xml" \
-    ! -name "anubis-*.xml" -delete 2>/dev/null || true
+# Fedora versioned dirs (f40, f41, f44, etc.)
+find /usr/share/backgrounds -maxdepth 1 -type d -name 'f[0-9]*' -exec rm -rf {} + 2>/dev/null || true
 
-# ── GDM wallpaper (uses first wallpaper as static login background) ───────
+# GDM dconf — static login background
 GDM_DCONF_DIR=/etc/dconf/db/gdm.d
 mkdir -p "$GDM_DCONF_DIR"
 
@@ -22,7 +21,7 @@ picture-uri-dark='file:///usr/share/backgrounds/anubis-os/anubis-04-jonesy-lake.
 picture-options='zoom'
 GDMWALL
 
-# ── GDM dconf profile ────────────────────────────────────────────────────
+# GDM dconf profile
 GDM_PROFILE=/etc/dconf/profile/gdm
 if [[ ! -f "$GDM_PROFILE" ]]; then
     cat > "$GDM_PROFILE" << 'GDMPROFILE'
@@ -32,4 +31,5 @@ file-db:/usr/share/gdm/greeter-dconf-defaults
 GDMPROFILE
 fi
 
-dconf update
+# Compile dconf — non-fatal if dconf not present at build time
+dconf update 2>/dev/null || true

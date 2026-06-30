@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
+trap 'echo "[setup-logo] FAILED at line $LINENO" >&2' ERR
 
-# Replace Fedora logos with Anubis OS logo
+if [[ ! -f /usr/share/pixmaps/anubis-logo.png ]]; then
+    echo "ERROR: /usr/share/pixmaps/anubis-logo.png not found. Did the files module run?" >&2
+    exit 1
+fi
+
 install -Dm644 /usr/share/pixmaps/anubis-logo.png \
     /usr/share/pixmaps/fedora_logo_med.png
-
 install -Dm644 /usr/share/pixmaps/anubis-logo.png \
     /usr/share/pixmaps/fedora_whitelogo_med.png
 
-# Logo Menu extension — replace default SVG/PNG with Anubis logo.
-# Use find so the UUID path doesn't have to be hardcoded.
 LOGO_MENU_DIR=$(find /usr/share/gnome-shell/extensions -maxdepth 2 \
     -name "logomenu*" -type d 2>/dev/null | head -1)
 
@@ -24,6 +26,9 @@ if [[ -n "$LOGO_MENU_DIR" ]]; then
          x="0" y="0" width="64" height="64"/>
 </svg>
 LOGOSVG
+    echo "[setup-logo] Logo Menu extension patched."
 else
-    echo "Warning: logomenu extension directory not found — skipping logo replacement." >&2
+    echo "[setup-logo] Warning: logomenu extension not found — skipping extension logo." >&2
 fi
+
+echo "[setup-logo] Done."

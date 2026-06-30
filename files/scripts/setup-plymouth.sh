@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+trap 'echo "[setup-plymouth] FAILED at line $LINENO" >&2' ERR
 
 THEME_DIR=/usr/share/plymouth/themes/anubis
 mkdir -p "$THEME_DIR"
@@ -19,7 +20,6 @@ ScriptFile=/usr/share/plymouth/themes/anubis/anubis.script
 PLYMOUTH
 
 cat > "$THEME_DIR/anubis.script" << 'SCRIPT'
-# ── Background ──────────────────────────────────────────────────────────────
 bg_image = Image.Text(" ", 1, 1, 0.1, 0.05, 0.18, 1);
 bg_scaled = bg_image.Scale(Window.GetWidth(), Window.GetHeight());
 bg_sprite = Sprite(bg_scaled);
@@ -27,7 +27,6 @@ bg_sprite.SetX(0);
 bg_sprite.SetY(0);
 bg_sprite.SetZ(-1);
 
-# ── Logo ─────────────────────────────────────────────────────────────────────
 logo_image = Image("anubis-logo.png");
 screen_width  = Window.GetWidth();
 screen_height = Window.GetHeight();
@@ -48,11 +47,11 @@ logo_sprite.SetY(screen_height / 2 - logo_scaled.GetHeight() / 2);
 logo_sprite.SetZ(0);
 SCRIPT
 
-# Register theme — plymouth-set-default-theme may not exist at build time,
-# so fall back to a symlink. Both are safe to fail gracefully.
 if command -v plymouth-set-default-theme &>/dev/null; then
     plymouth-set-default-theme anubis 2>/dev/null || true
 else
     ln -sf "$THEME_DIR/anubis.plymouth" \
         /usr/share/plymouth/themes/default.plymouth 2>/dev/null || true
 fi
+
+echo "[setup-plymouth] Done."

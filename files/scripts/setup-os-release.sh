@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+trap 'echo "[setup-os-release] FAILED at line $LINENO" >&2' ERR
 
 cat > /usr/lib/os-release << 'OSRELEASE'
 NAME="Anubis OS"
@@ -17,5 +18,5 @@ LOGO=anubis-logo
 ANSI_COLOR="0;38;2;139;92;246"
 OSRELEASE
 
-# Standard systemd symlink
 ln -sf /usr/lib/os-release /etc/os-release
+echo "[setup-os-release] Done."
