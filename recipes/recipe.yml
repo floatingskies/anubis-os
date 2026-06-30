@@ -18,8 +18,10 @@ modules:
   - type: rpm-ostree
     install:
       - ffmpeg
-
-
+    remove:
+      - gnome-software
+      - ptyxis                     # Terminal padrão no Fedora Silverblue 40+
+      - gnome-terminal             # Terminal padrão em versões anteriores
   # ---------------------------------------------------------------------
   # 2. Hardware geral
   # ---------------------------------------------------------------------
