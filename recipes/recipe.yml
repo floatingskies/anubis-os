@@ -96,7 +96,6 @@ modules:
         - com.brave.Browser
         # Utilitários
         - com.mattjakeman.ExtensionManager
-        - com.github.Aylur.ags
         - org.gnome.Resources
         - org.gnome.Boxes
         - io.github.flattool.Warehouse
