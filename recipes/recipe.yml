@@ -70,19 +70,43 @@ modules:
       - grep -rl 'negativo17.org' /etc/yum.repos.d/ 2>/dev/null | xargs -r rm -f
       - dnf clean all
 
-  # RPM Fusion + COPRs (Terra codecs, CachyOS sched_ext, ananicy-cpp)
+  # Download COPR repo files with 404 fallback.
+  # Fedora 44 is pre-release; some COPRs don't have F44 builds yet.
+  # We try each one and skip the ones that 404. The build continues regardless.
+  - type: script
+    snippets:
+      - |
+        OS_VER=$(grep '^VERSION_ID=' /etc/os-release | cut -d= -f2 | tr -d '"')
+        echo "Fedora version: $OS_VER"
+        try_copr() {
+          local name="$1" url="$2"
+          echo "Trying COPR: $name"
+          echo "  URL: $url"
+          if curl -fsSL "$url" -o "/etc/yum.repos.d/${name}.repo" 2>/dev/null; then
+            echo "  OK: downloaded"
+          else
+            echo "  SKIP: 404 or download failed (COPR may not have F${OS_VER} builds yet)"
+            rm -f "/etc/yum.repos.d/${name}.repo"
+          fi
+        }
+        # Terra - modern codec set (HEVC, AV1, MPEG-2, AC3, AAC-LC).
+        # Optional: RPM Fusion already provides ffmpeg + gstreamer codecs.
+        try_copr "terra-terra" \
+          "https://copr.fedorainfracloud.org/coprs/terra/terra/repo/fedora-${OS_VER}/terra-terra-fedora-${OS_VER}.repo"
+        # CachyOS kernel addons - sched_ext schedulers (scx_lavd, scx_rustland,
+        # scx_bpfland). Userspace BPF scheduler binaries on stock kernel >= 6.12.
+        try_copr "bieszczaders-kernel-cachyos-addons" \
+          "https://copr.fedorainfracloud.org/coprs/bieszczaders/kernel-cachyos-addons/repo/fedora-${OS_VER}/bieszczaders-kernel-cachyos-addons-fedora-${OS_VER}.repo"
+        # Ananicy-cpp - process priority daemon.
+        try_copr "zeno-ananicy-cpp" \
+          "https://copr.fedorainfracloud.org/coprs/zeno/ananicy-cpp/repo/fedora-${OS_VER}/zeno-ananicy-cpp-fedora-${OS_VER}.repo"
+        echo "COPR repo setup complete."
+
+  # RPM Fusion release packages (provides RPM Fusion repos for ffmpeg, codecs)
   - type: rpm-ostree
     install:
       - rpmfusion-free-release
       - rpmfusion-nonfree-release
-    repos:
-      # Terra - modern codec set (HEVC, AV1, MPEG-2, AC3, AAC-LC).
-      - https://copr.fedorainfracloud.org/coprs/terra/terra/repo/fedora-%OS_VERSION%/terra-terra-fedora-%OS_VERSION%.repo
-      # CachyOS kernel addons - sched_ext schedulers (scx_lavd, scx_rustland,
-      # scx_bpfland). Userspace BPF scheduler binaries on stock kernel >= 6.12.
-      - https://copr.fedorainfracloud.org/coprs/bieszczaders/kernel-cachyos-addons/repo/fedora-%OS_VERSION%/bieszczaders-kernel-cachyos-addons-fedora-%OS_VERSION%.repo
-      # Ananicy-cpp - process priority daemon.
-      - https://copr.fedorainfracloud.org/coprs/zeno/ananicy-cpp/repo/fedora-%OS_VERSION%/zeno-ananicy-cpp-fedora-%OS_VERSION%.repo
 
   # ---------------------------------------------------------------------------
   #  B. Base RPM layer - codecs, hw enablement, perf baseline
@@ -138,24 +162,48 @@ modules:
   #  C. Performance tuning - CachyOS/Arch grade on stock kernel
   # ---------------------------------------------------------------------------
 
-  # Performance daemons + schedulers
+  # Performance daemons + schedulers (from Fedora + RPM Fusion repos)
   - type: rpm-ostree
     install:
       - tuned
       - tuned-ppd
       - tuned-utils
       - irqbalance
-      - scx-scheds
       - gamemode
       - gamemode-devel
       - mangohud
       - vkbasalt
       - earlyoom
       - nohang
-      - ananicy-cpp
       - zram-generator
 
-  # Enable performance daemons
+  # Try to install COPR-dependent packages (scx-scheds, ananicy-cpp).
+  # These come from COPRs that may not have F44 builds yet.
+  # If the COPR is available, the package installs. If not, the build continues
+  # and the user can install them later via `ujust install-rpm scx-scheds`.
+  - type: script
+    snippets:
+      - |
+        # scx-scheds (sched_ext BPF schedulers) from CachyOS COPR
+        if ls /etc/yum.repos.d/bieszczaders-kernel-cachyos-addons*.repo >/dev/null 2>&1; then
+          echo "CachyOS COPR available - installing scx-scheds ..."
+          rpm-ostree install scx-scheds && echo "  OK: scx-scheds installed" || \
+            echo "  WARN: scx-scheds install failed (package may not exist in COPR yet)"
+        else
+          echo "CachyOS COPR not available - skipping scx-scheds"
+          echo "  Install later with: ujust install-rpm scx-scheds"
+        fi
+        # ananicy-cpp (process priority daemon) from ananicy COPR
+        if ls /etc/yum.repos.d/zeno-ananicy-cpp*.repo >/dev/null 2>&1; then
+          echo "Ananicy COPR available - installing ananicy-cpp ..."
+          rpm-ostree install ananicy-cpp && echo "  OK: ananicy-cpp installed" || \
+            echo "  WARN: ananicy-cpp install failed (package may not exist in COPR yet)"
+        else
+          echo "Ananicy COPR not available - skipping ananicy-cpp"
+          echo "  Install later with: ujust install-rpm ananicy-cpp"
+        fi
+
+  # Enable performance daemons (non-fatal if a package wasn't installed)
   - type: script
     snippets:
       - systemctl enable tuned.service
@@ -163,7 +211,7 @@ modules:
       - systemctl enable irqbalance.service
       - systemctl enable earlyoom.service
       - systemctl enable nohang.service
-      - systemctl enable ananicy-cpp.service
+      - systemctl enable ananicy-cpp.service || true
       - systemctl enable thermald.service || true
       - systemctl mask power-profiles-daemon.service || true
 
