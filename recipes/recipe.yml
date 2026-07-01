@@ -1,0 +1,472 @@
+# =============================================================================
+#  Anubis OS — recipe.yml  (KDE / Kinoite edition)
+# -----------------------------------------------------------------------------
+#  CachyOS-flavoured, security-minded, gaming-ready immutable Fedora with a
+#  DIY KDE Plasma desktop. Targets ≤ 1.5 GB RAM at idle on a fresh boot.
+#
+#  Design pillars
+#  --------------
+#    1. Performance     — tuned + scx-scheds (sched_ext) + aggressive sysctl,
+#                         zram, mq-deadline/none IO schedulers, earlyoom/nohang.
+#    2. DIY / minimal   — KDE Plasma core app set, no bloat. Every extra app
+#                         is an opt-in `ujust` command or a Flatpak.
+#    3. CLI-first       — modern Unix toolbelt (eza, bat, fd, rg, fzf, zoxide,
+#                         delta, btop, fastfetch, starship, oh-my-bash).
+#    4. Brew layer      — Homebrew for userland CLI/GUI apps, fully upgradeable
+#                         in-place (no reinstall needed).
+#    5. Ujust           — every post-install action is a `ujust <recipe>`.
+#    6. KDE defaults    — no GNOME extensions. Stock Plasma 6 with a curated
+#                         look (dark theme, JetBrains Mono, Anubis wallpaper,
+#                         Anubis logo on SDDM + lockscreen + KInfoCenter).
+#    7. Lean idle       — Baloo disabled, Akonadi masked, KWin effects trimmed,
+#                         no PIM daemons. Target: 1.3–1.5 GB RAM at idle.
+#    8. RPM-only base   — broad x86_64 hardware support (1st-gen Intel Core →
+#                         current, all AMD64). Stock Fedora kernel — rides
+#                         Fedora's regular cadence.
+# =============================================================================
+
+# --- Image identity ---------------------------------------------------------
+name: anubis-os
+description: >-
+  CachyOS-flavoured, security-focused, gaming-ready immutable Fedora with a
+  DIY KDE Plasma 6 desktop, modern CLI toolbelt, Homebrew layer, ujust
+  management, and ≤1.5 GB idle RAM. RPM-only base, broad x86_64 support.
+
+# ublue kinoite-main = KDE Plasma 6 ostree base. We replace the stock branding
+# and tune the system on top of it.
+base-image: ghcr.io/ublue-os/kinoite-main
+image-version: "44"
+
+# Aliases so users can `rpm-ostree rebase ostree-image-signed:anubis-os:stable`.
+aliases:
+  - latest
+  - stable
+  - "44"
+
+# =============================================================================
+#  MODULE PIPELINE
+# =============================================================================
+#  Stages are ordered for correctness:
+#    A. Repo hygiene            (kill broken repos, add COPRs)
+#    B. Base RPM layer          (codecs, hw enablement, perf baseline)
+#    C. Performance tuning      (sysctl, tuned, sched_ext, IO, zram, earlyoom)
+#    D. CLI toolbelt            (modern Unix tools)
+#    E. Development tooling     (containers, buildah, gh)
+#    F. Gaming                  (gamemode, mangohud, gamescope, vkbasalt)
+#    G. KDE Plasma desktop      (apps + plasma-workspace)
+#    H. Security                (firewalld, firejail, usbguard, clamav)
+#    I. Brew layer              (Homebrew)
+#    J. Flatpaks                (pre-baked offline install)
+#    K. Static files            (files/ tree → /)
+#    L. Build-time scripts      (branding, plymouth, performance, ujust, etc.)
+#    M. First-boot wiring       (systemd units for user-side setup)
+#    N. Signing                 (cosign)
+# =============================================================================
+
+modules:
+
+  # ---------------------------------------------------------------------------
+  #  A. Repo hygiene
+  # ---------------------------------------------------------------------------
+  - name: Repo hygiene — remove broken negativo17 repo
+    type: script
+    snippets:
+      - grep -rl 'negativo17.org' /etc/yum.repos.d/ 2>/dev/null | xargs -r rm -f
+      - dnf clean all
+
+  - name: RPM Fusion + COPRs
+    type: rpm-ostree
+    install:
+      - rpmfusion-free-release
+      - rpmfusion-nonfree-release
+    repos:
+      # Terra — modern codec set (HEVC, AV1, MPEG-2, AC3, AAC-LC).
+      - https://copr.fedorainfracloud.org/coprs/terra/terra/repo/fedora-%OS_VERSION%/terra-terra-fedora-%OS_VERSION%.repo
+      # CachyOS kernel addons — sched_ext schedulers (scx_lavd, scx_rustland,
+      # scx_bpfland). Userspace BPF scheduler binaries on stock kernel ≥ 6.12.
+      - https://copr.fedorainfracloud.org/coprs/bieszczaders/kernel-cachyos-addons/repo/fedora-%OS_VERSION%/bieszczaders-kernel-cachyos-addons-fedora-%OS_VERSION%.repo
+      # Ananicy-cpp — process priority daemon.
+      - https://copr.fedorainfracloud.org/coprs/zeno/ananicy-cpp/repo/fedora-%OS_VERSION%/zeno-ananicy-cpp-fedora-%OS_VERSION%.repo
+
+  # ---------------------------------------------------------------------------
+  #  B. Base RPM layer — codecs, hw enablement, perf baseline
+  # ---------------------------------------------------------------------------
+  - name: Codecs + multimedia
+    type: rpm-ostree
+    install:
+      - ffmpeg
+      - ffmpeg-libs
+      - gstreamer1-plugins-base
+      - gstreamer1-plugins-good
+      - gstreamer1-plugins-bad-free
+      - gstreamer1-plugins-ugly-free
+      - gstreamer1-vaapi
+      - gstreamer1-libav
+      - libva
+      - libva-intel-driver
+      - intel-media-driver
+      - libva-vdpau-driver
+      - pipewire
+      - pipewire-alsa
+      - pipewire-pulseaudio
+      - pipewire-jack-audio-connection-kit
+      - wireplumber
+      - lame
+      - opus
+      - flac
+
+  - name: Hardware enablement
+    type: rpm-ostree
+    install:
+      - fwupd
+      - fwupd-efi
+      - NetworkManager
+      - NetworkManager-wifi
+      - NetworkManager-bluetooth
+      - bluez
+      - bluez-cups
+      - plymouth
+      - plymouth-plugin-script
+      - plymouth-system-theme
+      - dracut-tools
+      - iwd
+      - bolt
+      - mcelog
+      - thermald
+      - smartmontools
+      - udisks2
+      - upower
+
+  # ---------------------------------------------------------------------------
+  #  C. Performance tuning — CachyOS/Arch grade on stock kernel
+  # ---------------------------------------------------------------------------
+  - name: Performance daemons + schedulers
+    type: rpm-ostree
+    install:
+      - tuned
+      - tuned-ppd
+      - tuned-utils
+      - irqbalance
+      - scx-scheds
+      - gamemode
+      - gamemode-devel
+      - mangohud
+      - vkbasalt
+      - earlyoom
+      - nohang
+      - ananicy-cpp
+      - zram-generator
+
+  - name: Enable performance daemons
+    type: script
+    snippets:
+      - systemctl enable tuned.service
+      - systemctl enable tuned-ppd.service
+      - systemctl enable irqbalance.service
+      - systemctl enable earlyoom.service
+      - systemctl enable nohang.service
+      - systemctl enable ananicy-cpp.service
+      - systemctl enable thermald.service || true
+      - systemctl mask power-profiles-daemon.service || true
+
+  # ---------------------------------------------------------------------------
+  #  D. CLI toolbelt — modern Unix tools
+  # ---------------------------------------------------------------------------
+  - name: Modern CLI toolbelt
+    type: rpm-ostree
+    install:
+      - bash-completion
+      - zsh
+      - fish
+      - tmux
+      - screen
+      - eza
+      - bat
+      - fd-find
+      - ripgrep
+      - fzf
+      - zoxide
+      - delta
+      - dust
+      - procs
+      - sd
+      - bottom
+      - btop
+      - bandwhich
+      - gping
+      - xh
+      - tealdeer
+      - direnv
+      - starship
+      - p7zip
+      - p7zip-plugins
+      - unrar
+      - unzip
+      - zip
+      - zstd
+      - xz
+      - bzip2
+      - rsync
+      - mtr
+      - iperf3
+      - nmap-ncat
+      - bind-utils
+      - whois
+      - tcpdump
+      - socat
+      - jq
+      - yq
+      - xmllint
+      - fastfetch
+      - inxi
+      - flatpak-spawn
+      - strace
+      - ltrace
+      - perf
+      - numactl
+      - hwinfo
+      - lshw
+      - pciutils
+      - usbutils
+      - dmidecode
+      - neovim
+      - helix
+      - git
+      - git-delta
+      - tig
+      - lazygit
+
+  # ---------------------------------------------------------------------------
+  #  E. Development tooling
+  # ---------------------------------------------------------------------------
+  - name: Container + dev tooling
+    type: rpm-ostree
+    install:
+      - podman
+      - podman-compose
+      - podman-docker
+      - buildah
+      - skopeo
+      - distrobox
+      - toolbox
+      - flatpak-builder
+      - qemu-kvm
+      - libvirt
+      - virt-install
+      - virt-manager
+      - gh
+      - glab
+      - code
+      - python3
+      - python3-pip
+      - python3-devel
+      - nodejs
+      - npm
+      - yarnpkg
+      - rust
+      - cargo
+      - go
+      - make
+      - cmake
+      - ninja-build
+      - gcc
+      - gcc-c++
+      - clang
+      - kernel-devel
+      - kernel-headers
+
+  # ---------------------------------------------------------------------------
+  #  F. Gaming (rpm-only base — Steam/Lutris stay Flatpak, see J)
+  # ---------------------------------------------------------------------------
+  - name: Gaming support (base layer)
+    type: rpm-ostree
+    install:
+      - gamescope
+      - mangoapp
+      - goverlay
+      - winetricks
+      - wine
+      - wine-core
+
+  # ---------------------------------------------------------------------------
+  #  G. KDE Plasma desktop (DIY core — minimal, lean, no PIM daemons)
+  # ---------------------------------------------------------------------------
+  - name: KDE Plasma 6 core
+    type: rpm-ostree
+    install:
+      # Plasma shell
+      - plasma-desktop
+      - plasma-workspace
+      - plasma-workspace-wayland
+      - plasma-nm
+      - plasma-pa
+      - plasma-discover
+      - plasma-discover-notifier
+      - plasma-firewall
+      - plasma-systemmonitor
+      - plasma-browser-integration
+      - plasma-pkcert
+      - kscreen
+      - sddm
+      - sddm-kcm
+      - sddm-theme-breeze
+      - kwin
+      - kinfocenter
+      - kio-fuse
+      - kio-extras
+      - kde-gtk-config
+      - kdegraphics-thumbnailers
+      - kimageformats
+      - qt6-qtimageformats
+      - qt6-qtwayland
+      - kvantum
+      - kvantum-qt6
+      - layer-shell-qt
+      # Plasma accessories
+      - kcron
+      - ksysguard
+      - kfind
+      - kmenuedit
+      - kwrite
+      - kate
+      - dolphin
+      - dolphin-plugins
+      - konsole
+      - okular
+      - gwenview
+      - spectacle
+      - kcalc
+      - krdc
+      - kcharselect
+      - kgpg
+      - ark
+      - filelight
+      - ksystemlog
+      - kdebugsettings
+      - milou
+      - kdialog
+      # Fonts
+      - google-noto-sans-fonts
+      - google-noto-sans-cjk-fonts
+      - google-noto-sans-cjk-ttc-fonts
+      - google-noto-serif-fonts
+      - google-noto-mono-fonts
+      - google-noto-emoji-fonts
+      - fira-code-fonts
+      - jetbrains-mono-fonts
+      - cascadia-code-fonts
+      - hack-fonts
+      - inter-fonts
+      # Browser
+      - firefox
+      # Background-logo on SDDM (already handled by setup-logo.sh)
+
+  # ---------------------------------------------------------------------------
+  #  H. Security
+  # ---------------------------------------------------------------------------
+  - name: User security
+    type: rpm-ostree
+    install:
+      - firewalld
+      - firewalld-config
+      - firewall-config
+      - firejail
+      - firejail-profiles
+      - usbguard
+      - usbguard-dconf
+      - usbguard-selinux
+      - clamav
+      - clamav-update
+      - clamav-unofficial-sigs
+      - rkhunter
+      - aide
+      - polkit
+
+  - name: Enable security services
+    type: script
+    snippets:
+      - systemctl enable firewalld.service
+      - systemctl enable usbguard.service
+      - systemctl enable clamav-freshclam.service || true
+
+  # ---------------------------------------------------------------------------
+  #  I. Brew layer (Homebrew — apps upgradeable in-place, no reinstall)
+  # ---------------------------------------------------------------------------
+  - name: Homebrew layer
+    type: brew
+
+  # ---------------------------------------------------------------------------
+  #  J. Pre-baked Flatpaks (offline install on the ISO)
+  # ---------------------------------------------------------------------------
+  - name: Pre-baked Flatpaks
+    type: default-flatpaks
+    configurations:
+      - scope: system
+        install:
+          # Gaming
+          - com.valvesoftware.Steam
+          - com.valvesoftware.Steam.Utility.MangoHud
+          - net.lutris.Lutris
+          - org.libretro.RetroArch
+          - com.usebottles.bottles
+          # Productivity
+          - com.visualstudio.code
+          - org.libreoffice.LibreOffice
+          - org.kde.kdenlive
+          - io.github.kolunmi.Bazaar
+          - io.github.getnf.embellish
+          # Creative
+          - org.gimp.GIMP
+          - org.inkscape.Inkscape
+          # System
+          - net.nokyan.Resources
+          - com.ranfdev.DistroShelf
+
+  # ---------------------------------------------------------------------------
+  #  K. Static files (files/ tree → /)
+  # ---------------------------------------------------------------------------
+  - name: Static system files
+    type: files
+    files:
+      - source: files
+        destination: /
+
+  # ---------------------------------------------------------------------------
+  #  L. Build-time scripts (run during image build, NOT at first boot)
+  # ---------------------------------------------------------------------------
+  - name: Build-time setup scripts
+    type: script
+    scripts:
+      # 1. Branding
+      - setup-os-release.sh
+      - setup-hostname.sh
+      - setup-logo.sh
+      # 2. Boot visual
+      - setup-plymouth.sh
+      # 3. Desktop — KDE wallpapers + Plasma defaults
+      - setup-wallpaper.sh
+      - setup-kde-defaults.sh
+      # 4. Performance — tuned, sysctl, udev, sched_ext, + KDE RAM savings
+      - setup-performance.sh
+      # 5. CLI shell — oh-my-bash, starship, fastfetch config in /etc/skel
+      - setup-ohmybash.sh
+      # 6. Ujust — install custom just recipes
+      - setup-ujust.sh
+      # 7. Brew — seed the user Brewfile
+      - setup-brew.sh
+      # 8. First-boot wiring
+      - setup-first-boot.sh
+      # 9. Enable the first-boot units
+      - enable-first-boot-units.sh
+      # 10. Permissions — set modes/contexts on everything shipped
+      - set-permissions.sh
+
+  # ---------------------------------------------------------------------------
+  #  M. First-boot wiring (units are written by setup-first-boot.sh)
+  # ---------------------------------------------------------------------------
+
+  # ---------------------------------------------------------------------------
+  #  N. Signing
+  # ---------------------------------------------------------------------------
+  - name: Sign the image with cosign
+    type: signing

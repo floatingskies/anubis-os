@@ -1,218 +1,523 @@
-<div align="center">
+# Anubis OS — KDE Kinoite edition
 
-<img src="https://github.com/user-attachments/assets/14a4ad1b-5c09-4f65-b186-6b246e2f88e3" width="140" alt="anubis-os logo" />
-
-# anubis-os
-
-**Uma imagem imutável baseada em Fedora Silverblue, feita por hobby pra rodar jogo, trabalhar e dormir tranquilo.**
-
-[![build](https://github.com/floatingskies/anubis-os/actions/workflows/build.yml/badge.svg)](https://github.com/floatingskies/anubis-os/actions/workflows/build.yml)
-[![Fedora 44](https://img.shields.io/badge/Fedora-44-51a2da?logo=fedora&logoColor=white)](https://fedoraproject.org/)
-[![Base: Silverblue](https://img.shields.io/badge/Base-Silverblue_Main-3584e4?logo=gnome&logoColor=white)](https://silverblue.fedoraproject.org/)
-[![Stars](https://img.shields.io/github/stars/floatingskies/anubis-os?style=social)](https://github.com/floatingskies/anubis-os/stargazers)
-
-</div>
-
----
-
-## O que é isso?
-
-O **anubis-os** começou como um projeto de fim de semana em cima do [Universal Blue](https://universal-blue.org/) — o mesmo projeto base do Bazzite e do Aurora — e foi crescendo até virar o sistema que uso todo dia. A ideia é ter uma imagem que joga bem, trabalha bem e não dá dor de cabeça com segurança básica, sem precisar de VM, partição extra ou ficar remendando o sistema toda semana.
-
-A base é atômica e imutável: o que você instala via Flatpak ou Brew fica separado do OS, e as atualizações são transacionais — se algo quebrar, você volta com um comando e segue a vida.
-
-Não é distro de empresa nem promete ser a próxima Bazzite. É um recipe.yml mantido por uma pessoa só que gosta de mexer nisso.
-
----
-
-## Variantes
-
-| Imagem | Para quem |
-|--------|-----------|
-| `anubis-os` | Hardware genérico x86_64 |
-| `anubis-os-macbook` | MacBook Air Intel 2013–2017 (Wi-Fi Broadcom) |
-
----
-
-## O que vem incluso
-
-### Gaming e produtividade, sem escolher um dos dois
-
-A ideia aqui não é "PC de jogo" de um lado e "PC de trabalho" do outro — é a mesma máquina fazendo as duas coisas bem. Steam e Lutris já vêm prontos, o sistema ajusta prioridade de processo e energia automaticamente quando um jogo abre (`gamemode` + `ananicy-cpp`), e quando você fecha o jogo e abre o LibreOffice ou o VS Code, ninguém percebe diferença — não tem nenhum modo especial pra ligar e desligar.
-
-O Wine não fica na imagem base: tudo de Proton/Wine roda via Flatpak (Steam, Lutris, Bottles), o que mantém o sistema base limpo e fácil de fazer rollback se algo bugar.
-
-| Pacote | Função |
-|--------|--------|
-| Steam, Lutris, Bottles (Flatpak) | Lojas, Proton e compatibilidade com Windows |
-| ProtonUp-Qt | Instala e gerencia versões do Proton-GE/Wine-GE |
-| `gamemode` | Otimização de CPU/GPU automática enquanto o jogo roda |
-| `gamescope` | Compositor dedicado para jogos |
-| `mangohud` + GOverlay | Overlay de performance e a GUI pra configurar ele |
-| `ananicy-cpp` | Prioriza automaticamente processos pesados (jogos, compilação etc.) |
-| `steam-devices` | Regras de udev pra controle funcionar de primeira |
-| `zram-generator-defaults` + `thermald` | Ajuda em máquina com pouca RAM ou mais velha a aquecer/travar menos |
-
-E pro dia a dia "sério", já vem LibreOffice, VS Code e GIMP pré-instalados via Flatpak.
-
-### Pentesting leve, sem virar Kali
-
-Ferramentas básicas de rede e auditoria direto no terminal, sem mexer nas dependências do sistema:
+> The **CachyOS of Fedora** — a security-minded, gaming-ready, immutable
+> Universal Blue image with a DIY **KDE Plasma 6** desktop, modern CLI
+> toolbelt, Homebrew layer, and `ujust` management. Targets **≤ 1.5 GB RAM
+> at idle** on a fresh boot.
 
 ```
-nmap  nmap-ncat  whois  curl  wget  traceroute  net-tools
-```
-
-Pra ferramenta mais pesada (`sqlmap`, `hydra`, `hashcat` etc.), a recomendação é container via **Toolbox** ou **Distrobox** — mantém isolado e não suja a base.
-
-### Segurança do dia a dia
-
-Nada de ferramenta de auditoria pensada pra servidor — só o básico que faz sentido numa máquina pessoal:
-
-| Ferramenta | O que faz |
-|------------|-----------|
-| `firewalld` | Firewall com controle por zona |
-| `firejail` | Sandboxing de aplicações |
-| `clamav` | Antivírus |
-
-### GNOME já configurado
-
-Extensões ativas por padrão via dconf, sem precisar abrir o Extension Manager no primeiro boot:
-
-- **Dash to Dock** — dock sempre visível
-- **Blur my Shell** — fundo desfocado no launcher e no dash
-- **PaperWM** — janelas em scroll horizontal (bom pra quem usa ultrawide)
-- **AppIndicator** — ícone de bandeja pra Discord, Telegram etc.
-- **Logo Menu** — menu de sistema com a logo do anubis-os
-- **Caffeine** — impede o bloqueio de tela quando precisa
-
-### Terminal
-
-- **fastfetch** — informação do sistema ao abrir o terminal
-- **Oh My Bash** — instalado no primeiro boot, sem depender de internet na hora do rebase
-- **Starship** — prompt customizado, instalado no primeiro boot ou via `brew install starship`
-- **Homebrew** — pra tudo que não faz sentido ir pro rpm-ostree
-
----
-
-## Instalação
-
-### Rebase a partir de qualquer sistema Universal Blue ou Silverblue
-
-```bash
-# Imagem genérica
-rpm-ostree rebase ostree-unverified-registry:ghcr.io/floatingskies/anubis-os:44
-
-# Imagem para MacBook Air Intel 2013–2017
-rpm-ostree rebase ostree-unverified-registry:ghcr.io/floatingskies/anubis-os-macbook:44
-```
-
-Reinicie após o rebase. No próximo boot, o sistema roda o setup de primeiro uso (Oh My Bash, Starship, permissões).
-
-### Verificar a assinatura da imagem
-
-```bash
-cosign verify ghcr.io/floatingskies/anubis-os \
-  --certificate-identity-regexp=https://github.com/floatingskies \
-  --certificate-oidc-issuer=https://token.actions.githubusercontent.com
+                  ▒▓█▓▒
+               ▒▓█      █▓▒
+            ▒▓█   Anubis   █▓▒
+               ▓█   OS   █▓
+                  ██████
+        ─────────────────────────
+        CachyOS-grade perf, stock kernel
+        KDE Plasma 6 · Breeze Dark
+        RPM-only base · Brew userland
+        Ujust-managed · No reinstall ever
 ```
 
 ---
 
-## Primeiro boot
+## What this is
 
-O serviço `anubis-setup-user` roda automaticamente e:
+Anubis OS is a [Universal Blue](https://universal-blue.org/) / [BlueBuild](https://blue-build.org/)
+image layered on top of `ghcr.io/ublue-os/kinoite-main` (KDE Plasma 6 ostree
+base). It is **not** a separate distribution — it is an opinionated, atomic,
+transactionally-updated overlay on Fedora Kinoite.
 
-1. Clona o **Oh My Bash** em `~/.oh-my-bash`
-2. Instala o **Starship** em `~/.local/bin` via instalador oficial
-3. Aplica o `.bashrc` e as configs de fastfetch e Starship
-
-Se quiser rodar manualmente depois:
-
-```bash
-/usr/share/anubis-os/scripts/setup-ohmybash-user.sh
-```
-
----
-
-## Customização
-
-### Adicionar pacotes ao sistema base
-
-Edite `recipe.yml` (ou `recipe-macbook.yml`) e faça rebuild via GitHub Actions.
-
-### Instalar algo pontualmente sem rebuild
-
-```bash
-# Persistente no sistema base (use com moderação)
-rpm-ostree install <pacote>
-
-# Via Homebrew (sem sudo, não toca no OS)
-brew install <pacote>
-
-# Via Flatpak (apps com sandbox)
-flatpak install flathub <app-id>
-```
-
-### Ferramentas de pentesting num container isolado
-
-```bash
-# Criar um container Fedora com acesso à rede do host
-distrobox create --name pentest --image fedora:latest
-distrobox enter pentest
-sudo dnf install nmap hydra sqlmap hashcat
-```
+| Pillar              | How |
+|---------------------|-----|
+| **Performance**     | tuned + sched_ext (`scx_rustland`), aggressive sysctl (BBR, fq, low-latency CFS), zram 50%, mq-deadline/none IO schedulers, earlyoom + nohang + ananicy-cpp. |
+| **Lean idle**       | Baloo disabled, Akonadi masked, KWin effects trimmed, KDE Connect autostart off, PackageKit auto-refresh masked. **Target: 1.3–1.5 GB RAM at idle.** |
+| **DIY / minimal**   | KDE Plasma 6 core app set only (Dolphin, Konsole, Kate, Okular, Gwenview, Spectacle, KCalc, KRDC, KInfoCenter). Every extra app is an opt-in `ujust` command or a Flatpak. |
+| **CLI-first**       | eza, bat, fd, ripgrep, fzf, zoxide, delta, btop, fastfetch, starship, oh-my-bash, tmux. |
+| **Brew layer**      | Homebrew for userland CLI/GUI apps. Upgradeable in-place, no reinstall needed. |
+| **Ujust-managed**   | Every post-install action is a `ujust <recipe>`. Re-run any time. |
+| **KDE defaults**    | No GNOME extensions. Stock Plasma 6 with a curated look (Breeze Dark, JetBrains Mono, Anubis wallpaper on desktop + SDDM + lockscreen, Anubis logo on SDDM + KInfoCenter). |
+| **RPM-only base**   | Broad x86_64 hardware support (1st-gen Intel Core → current, all AMD64). Stock Fedora kernel — rides Fedora's regular cadence. |
+| **Security**        | firewalld, firejail, usbguard, clamav, rkhunter, aide. |
 
 ---
 
-## Estrutura do repositório
+## Project layout (BlueBuild convention)
 
 ```
 anubis-os/
-├── recipes/
-│   ├── recipe.yml              # imagem genérica
-│   └── recipe-macbook.yml      # variante MacBook
-├── files/
-│   └── system/                 # arquivos copiados para / na imagem
-│       ├── usr/share/backgrounds/anubis-os/
-│       ├── usr/share/pixmaps/
-│       └── usr/share/plymouth/themes/anubis/
-└── scripts/
-    ├── set-permissions.sh
-    ├── setup-hostname.sh
-    ├── setup-os-release.sh
-    ├── setup-logo.sh
-    ├── setup-plymouth.sh
-    ├── setup-wallpaper.sh
-    ├── setup-ohmybash.sh
-    ├── enable-gnome-extensions-defaults.sh
-    └── enable-first-boot-units.sh
+├── recipe.yml                              # BlueBuild recipe — the spine
+├── .github/workflows/
+│   ├── build.yml                           # CI: image build + smoke test
+│   └── iso.yml                             # CI: ISO generation
+├── scripts/                                # Build-time scripts (run inside the container)
+│   ├── setup-os-release.sh                 # Branding: /usr/lib/os-release
+│   ├── setup-hostname.sh                   # Hostname + machine-info
+│   ├── setup-logo.sh                       # SDDM + KInfoCenter + icon theme logo
+│   ├── setup-plymouth.sh                   # Boot splash theme + initramfs rebuild
+│   ├── setup-wallpaper.sh                  # KDE wallpapers + Plasma defaults
+│   ├── setup-kde-defaults.sh               # ⚡ Plasma 6 config (dark theme, no Baloo, no Akonadi)
+│   ├── setup-performance.sh                # ⚡ CachyOS-grade tuning + KDE RAM savings
+│   ├── setup-ohmybash.sh                   # Shell stack in /etc/skel
+│   ├── setup-ujust.sh                      # Install ujust recipes
+│   ├── setup-brew.sh                       # Ship default Brewfile
+│   ├── setup-first-boot.sh                 # Generate systemd units + first-boot scripts
+│   ├── enable-first-boot-units.sh          # Enable the units
+│   └── set-permissions.sh                  # File modes + SELinux contexts
+├── files/                                  # Static files → shipped to / by `files` module
+│   └── usr/
+│       └── share/
+│           ├── wallpapers/anubis-os/       # 7 Anubis wallpapers (KDE path)
+│           │   ├── anubis-01-fire-forest.jpg
+│           │   ├── anubis-02-firewatch-tower.jpg
+│           │   ├── anubis-03-firewatch-wallpaper.jpeg
+│           │   ├── anubis-04-jonesy-lake.png
+│           │   ├── anubis-05-ol-shoshone.jpg
+│           │   ├── anubis-06-tower-of-firewatch.jpeg
+│           │   └── anubis-wallpaper.png
+│           ├── pixmaps/anubis-logo.png
+│           ├── anubis-os/Brewfile
+│           ├── ublue-os/just/anubis.just   # 14 ujust recipes
+│           └── sddm/themes/anubis/         # Custom SDDM theme dir (populated by setup-logo.sh)
+└── README.md
 ```
 
 ---
 
-## Build local
+## Build the image
+
+### Local build
 
 ```bash
-# Instalar o BlueBuild CLI
-brew install blue-build/tap/bluebuild
-# ou
-cargo install blue-build
+# 1. Install the BlueBuild CLI
+curl -fsSL https://raw.githubusercontent.com/blue-build/cli/main/install.sh | bash
 
-# Build
-bluebuild build recipes/recipe.yml
+# 2. Build and load into podman
+bluebuild build recipe.yml
+
+# 3. (Optional) Push to GHCR
+echo "$GITHUB_TOKEN" | skopeo login ghcr.io -u "$USER" --password-stdin
+bluebuild build --push recipe.yml
+```
+
+### CI build
+
+The included `.github/workflows/build.yml`:
+1. Frees ~5 GB of disk space on the runner (kills dotnet, Android SDK, haskell).
+2. Builds the image via `blue-build/github-action@v1`.
+3. Pushes to `ghcr.io/<owner>/anubis-os:latest`.
+4. Signs with cosign (if `COSIGN_PRIVATE_KEY` secret is present).
+5. Smoke-tests: pulls the image and verifies `/usr/lib/os-release` has `ID=anubis-os`.
+
+Triggers:
+- Push to `main` (only on changes to `recipe.yml`, `scripts/`, `files/`, or the workflow itself)
+- Weekly schedule (Mon 06:00 UTC)
+- Manual dispatch
+
+Required secrets:
+
+| Secret                | Used for |
+|-----------------------|----------|
+| `COSIGN_PRIVATE_KEY`  | Image signing (optional) |
+| `COSIGN_PASSWORD`     | Image signing (optional) |
+
+---
+
+## Build the ISO
+
+The ISO workflow is **manual-trigger only** (image builds are expensive; ISOs
+even more so):
+
+1. Go to **Actions → Build anubis-os ISOs → Run workflow**.
+2. Wait ~10 minutes.
+3. Download the `iso-anubis-os` artifact (valid 14 days).
+
+The ISO is a live Fedora Kinoite ISO that rebases onto the Anubis OS image on
+first boot. All Flatpaks are pre-baked into the image, so the ISO is fully
+offline-capable.
+
+---
+
+## Install
+
+### From the ISO
+1. Boot the ISO.
+2. Click "Install Anubis OS" on the live desktop.
+3. Walk through the Fedora installer (Anaconda) — partitioning, timezone, user creation.
+4. Reboot. The first-boot systemd units fire automatically.
+
+### By rebasing an existing Kinoite installation
+
+```bash
+sudo ostree remote add anubis https://ghcr.io/floatingskies/anubis-os
+sudo rpm-ostree rebase ostree-image-signed:docker://ghcr.io/floatingskies/anubis-os:latest
+sudo systemctl reboot
 ```
 
 ---
 
-## Contribuindo
+## First boot — what happens
 
-Isso aqui é projeto de hobby, então vai no ritmo que dá — mas issues e PRs são bem-vindos. Achou um Flatpak com ID errado, um script quebrando no build ou uma extensão com UUID desatualizado? Abre uma issue.
+On first boot after install/rebase, two systemd units fire in sequence:
+
+### 1. `anubis-first-boot.service` (system)
+- Activates the tuned profile `anubis-network-latency` (CachyOS-style).
+- Enables + starts `scx_modscheduler.service` (loads `scx_rustland` BPF scheduler).
+- Stamps `/etc/anubis-os/version`.
+- Writes `/var/lib/anubis-os/first-boot-complete` (prevents re-running on every boot).
+- Triggers `anubis-setup-user.service`.
+
+### 2. `anubis-setup-user.service` (runs as the just-created user)
+- Clones Oh My Bash into `~/.oh-my-bash`.
+- Installs Starship into `~/.local/bin/starship`.
+- Seeds `~/.bashrc`, `~/.zshrc`, `~/.config/starship.toml`, `~/.config/fastfetch/config.jsonc`, `~/.tmux.conf` (only if not already customised).
+- Runs `plasma-apply-wallpaperplugin` to set the Anubis wallpaper.
+- Runs `plasma-apply-colorscheme BreezeDark`.
+- Runs `plasma-apply-cursortheme breeze-dark`.
+- Re-disables Baloo (in case Plasma tried to re-enable it).
+- Runs `brew bundle` against `~/.config/anubis-os/Brewfile` (copies the default from `/usr/share/anubis-os/Brewfile` on first run).
+
+After ~30 seconds you'll see fastfetch output on your first interactive shell,
+with the Anubis logo and a purple Starship prompt.
 
 ---
 
-<div align="center">
+## In-place upgrade — never reinstall
 
-Feito com [Universal Blue](https://universal-blue.org/) · Baseado em [Fedora Silverblue](https://silverblue.fedoraproject.org/)
+> **You never need to reinstall to upgrade your user environment.** Every
+> user-side step is re-runnable via `ujust upgrade-user`. Image upgrades
+> (rpm-ostree upgrade) NEVER touch your home directory.
 
-</div>
+### Three upgrade tiers
+
+| Tier              | Command                  | What it upgrades |
+|-------------------|--------------------------|------------------|
+| Image (system)    | `rpm-ostree upgrade`     | Base image + layered RPMs. Requires reboot. |
+| Flatpaks          | `flatpak update`         | All Flatpak apps. No reboot. |
+| User (shell+KDE+brew) | `ujust upgrade-user` | Oh My Bash, Starship, Plasma defaults, Brewfile bundle. No reboot. |
+
+Or do all three at once:
+
+```bash
+ujust upgrade-system
+```
+
+---
+
+## `ujust` API reference (14 recipes)
+
+```bash
+ujust --list                            # discover every recipe
+ujust help                              # Anubis-specific help
+```
+
+### Setup recipes
+
+| Recipe                  | Description |
+|-------------------------|-------------|
+| `ujust setup-shell`     | (Re)install Oh My Bash + Starship + Fastfetch. |
+| `ujust setup-brew`      | Install Homebrew (if missing) + run `brew bundle`. |
+| `ujust setup-gaming`    | Enable gamemode + verify Vulkan/Steam/Lutris. |
+| `ujust setup-performance` | Re-apply sysctl + tuned + sched_ext. |
+| `ujust setup-kde`       | Re-apply Plasma defaults (dark theme, wallpaper, no Baloo). |
+| `ujust wallpaper <name>` | Switch desktop wallpaper (e.g. `anubis-04-jonesy-lake.png`). |
+
+### Switching schedulers
+
+```bash
+ujust scheduler rustland   # default — best desktop interactivity
+ujust scheduler lavd       # CachyOS default — gaming-focused
+ujust scheduler bpfland    # alternative — SMT-friendly
+ujust scheduler eevdf      # disable sched_ext, use stock kernel CFS
+```
+
+### Switching tuned profiles
+
+```bash
+ujust tuned anubis-network-latency   # default
+ujust tuned throughput-performance   # for builds/compiles
+ujust tuned powersave                # battery
+```
+
+### Upgrades
+
+| Recipe                | Description |
+|-----------------------|-------------|
+| `ujust upgrade-user`  | Re-run shell + KDE + brew setup (no reinstall). |
+| `ujust upgrade-brew`  | `brew update && brew upgrade && brew cleanup`. |
+| `ujust upgrade-system`| `rpm-ostree upgrade` + `flatpak update` + brew + user. |
+
+### Utilities
+
+| Recipe                  | Description |
+|-------------------------|-------------|
+| `ujust distrobox-create [name]` | Spin up a Fedora 41 dev container. |
+| `ujust cleanup`        | Prune journals, ostree, flatpak unused, brew cache, ~/.cache. |
+| `ujust info`           | fastfetch + tuned + sched_ext + DE + ostree status. |
+
+---
+
+## Performance tuning — the CachyOS layer
+
+`scripts/setup-performance.sh` installs:
+
+### sysctl (`/etc/sysctl.d/99-anubis-performance.conf`)
+- **VM**: `swappiness=10`, `vfs_cache_pressure=50`, `dirty_ratio=10`, `page-cluster=1` (zram-friendly).
+- **Scheduler**: `sched_migration_cost_ns=500000` (better multi-CCX), `sched_autogroup_enabled=1`, low-latency CFS granularity.
+- **Network**: `tcp_congestion_control=bbr`, `default_qdisc=fq`, `tcp_ecn=1`, `tcp_fastopen=3`, `tcp_notsent_lowat=131072`.
+- **fs**: `inotify.max_user_watches=524288`, `file-max=2097152`, `aio-max-nr=1048576`.
+
+### udev (`/etc/udev/rules.d/60-anubis-*.rules`)
+- **NVMe** → `none` scheduler (device has its own queue).
+- **SATA SSD** → `mq-deadline`.
+- **HDD / eMMC** → `bfq`.
+- **CPU governor** → `powersave` (tuned overrides at runtime).
+- **GPU runtime PM** → `auto` for AMD/NVIDIA/Intel iGPUs.
+
+### tuned profile (`anubis-network-latency`)
+- CPU governor = `performance`
+- EPP = `performance`
+- THP = `always`
+- sched_ext = `scx_rustland`
+
+### zram
+50% of RAM, `zstd`-compressed, swap-priority 100. No disk swap.
+
+### sched_ext
+`sched_ext` is the Linux kernel's eBPF-based extensible scheduler framework.
+Fedora ships it enabled by default (kernel ≥ 6.12). Anubis OS defaults to
+`scx_rustland`. Switch at runtime with `ujust scheduler <name>` — no reboot.
+
+### earlyoom + nohang + ananicy-cpp
+- `earlyoom` kills misbehaving apps before the kernel OOM killer fires.
+- `nohang` warns before memory runs out.
+- `ananicy-cpp` auto-renices known background apps so foreground stays snappy.
+
+---
+
+## KDE Plasma — the RAM savings
+
+To hit **≤ 1.5 GB RAM at idle** on a fresh boot, the following are disabled
+or masked:
+
+| Component | Action | Savings |
+|-----------|--------|---------|
+| **plasma-discover** | Not installed — **Bazaar** is the default app store (Flatpak) | ~150 MB |
+| **Baloo** (file indexer) | Disabled via `baloofilerc` + service masked | ~50–100 MB |
+| **Akonadi** (PIM framework) | Service masked; we don't ship KDE PIM apps | ~30–50 MB |
+| **KDE Connect** | Autostart disabled (user can launch manually) | ~20 MB |
+| **KWallet** | Autostart disabled (user can launch manually) | ~15 MB |
+| **PackageKit auto-refresh** | Service masked | ~30 MB + CPU spikes |
+| **plasma-discover-notifier** | Masked (defence-in-depth) | ~20 MB |
+| **plocate-updatedb / updatedb.timer** | Masked (we have `fd` and `rg`) | periodic CPU spikes |
+| **KWin effects** | Trimmed (no wobbly windows, no magic lamp, no fallapart) | GPU + CPU at idle |
+| **Session restore** | Disabled (loginMode=emptySession) | cold-start RAM |
+
+### Where the idle RAM goes (typical 8 GB system)
+
+| Component | RAM |
+|-----------|-----|
+| Kernel + initramfs | ~150 MB |
+| systemd + dbus + journald | ~50 MB |
+| NetworkManager + wpa_supplicant / iwd | ~30 MB |
+| pipewire + wireplumber | ~30 MB |
+| udev + udisks + upower + fwupd | ~40 MB |
+| firewalld | ~30 MB |
+| tuned + irqbalance + earlyoom + nohang | ~30 MB |
+| scx_modscheduler (BPF) | ~10 MB |
+| **Plasma shell (plasmashell)** | ~250 MB |
+| **KWin** | ~100 MB |
+| **SDDM (if logged out)** | ~50 MB |
+| **Total** | **~800 MB** |
+
+Plus your user session (Konsole, browser, etc.) — typically 300–500 MB more.
+That puts you at **~1.1–1.3 GB at idle**, well under the 1.5 GB target.
+
+### Verify your idle RAM
+
+```bash
+ujust info
+# Look for the "Mem" line in fastfetch — should show < 1.5 GB used.
+
+free -h
+# The "used" column should be under 1.5 GB on a fresh boot.
+
+systemd-cgtop -m -n 1
+# Per-cgroup memory breakdown — find what's eating RAM if you're over.
+```
+
+---
+
+## App store — Bazaar
+
+Anubis OS ships **[Bazaar](https://github.com/kolunmi/Bazaar)** as the default
+software store (a modern Flatpak-only GUI for Flathub). Discover is **not
+installed** — Bazaar replaces it entirely.
+
+### Why Bazaar over Discover?
+
+| | Discover | Bazaar |
+|---|----------|--------|
+| Backend | PackageKit (RPM + Flatpak, slow on ostree) | Flatpak-only (fast, no ostree layering) |
+| RAM at idle | ~150 MB | ~50 MB |
+| Updates | Tries to update layered RPMs (causes `rpm-ostree upgrade` loops) | Flatpak-only updates (clean, no reboot) |
+| UI | Cluttered (5 backends mixed) | Focused (just Flathub, the largest Flatpak repo) |
+
+### Launching Bazaar
+
+- **From the menu**: Applications → System → "Install Software"
+- **From the terminal**: `ujust software-store` (or `ujust app-store`)
+- **From a browser**: Clicking an `appstream://` link opens Bazaar automatically
+
+### Updating apps
+
+```bash
+flatpak update -y                              # all Flatpaks
+flatpak uninstall --unused -y                  # remove unused runtimes
+# Or via the ujust shortcut:
+ujust upgrade-system                           # rpm-ostree + flatpak + brew + user
+```
+
+---
+
+## Homebrew layer
+
+Why Homebrew on Fedora/Anubis?
+- **Faster updates than Fedora** for fast-moving tools (`k9s`, `helm`, `kubectl`, `gh`, `lazygit`, `mise`, `uv`, `ruff`).
+- **Cross-distro**: same tools available inside distrobox containers.
+- **User-managed**: no `rpm-ostree install` + reboot dance.
+
+```bash
+cp /usr/share/anubis-os/Brewfile ~/.config/anubis-os/Brewfile
+$EDITOR ~/.config/anubis-os/Brewfile
+ujust setup-brew
+```
+
+Your local Brewfile survives every image upgrade.
+
+---
+
+## Security
+
+- **firewalld** — default zone `public`, SSH + HTTP/HTTPS allowed.
+- **firejail** — profiles for every GUI app.
+- **usbguard** — USB allowlist. Run `usbguard generate-policy` on first boot to whitelist your current devices.
+- **clamav** — freshclam enabled, scans on-demand.
+- **rkhunter** + **aide** — integrity baseline; run `aide --init` after install.
+
+---
+
+## Troubleshooting
+
+### First boot didn't run user setup
+```bash
+systemctl status anubis-first-boot.service
+systemctl status anubis-setup-user.service
+journalctl -u anubis-first-boot.service -b
+journalctl -u anubis-setup-user.service -b
+```
+
+Re-run manually:
+```bash
+ujust setup-shell
+ujust setup-kde
+```
+
+### sched_ext didn't load
+```bash
+uname -r   # need >= 6.12
+lsmod | grep sched_ext
+systemctl status scx_modscheduler.service
+```
+
+Fallback to EEVDF:
+```bash
+ujust scheduler eevdf
+```
+
+### Wallpapers not showing in Plasma picker
+Plasma's wallpaper picker should auto-discover every file under
+`/usr/share/wallpapers/anubis-os/`. If it doesn't:
+```bash
+ujust wallpaper anubis-wallpaper.png   # force-set via plasma-apply-wallpaperplugin
+```
+
+### RAM is over 1.5 GB at idle
+```bash
+systemd-cgtop -m -n 1   # see which cgroup is eating RAM
+balooctl6 status         # confirm Baloo is suspended
+systemctl --user list-units --state=running   # see user services
+```
+
+Common culprits:
+- Discover installed via layered RPM → `sudo rpm-ostree uninstall plasma-discover` (Bazaar is the default app store)
+- KRunner with baloosearch enabled → `kwriteconfig6 --file krunnerrc --group Plugins --key baloosearchEnabled false`
+- Akonadi still running → `akonadictl stop && systemctl --user mask akonadi_*`
+
+### Plymouth shows the Fedora logo
+The theme is baked into the initramfs at build time. Re-trigger:
+```bash
+sudo dracut -f --regenerate-all
+```
+
+---
+
+## Hacking on Anubis OS
+
+### Build locally
+```bash
+bluebuild build recipe.yml
+```
+
+### Test the image in a VM
+```bash
+# Boot the built image directly with podman + qemu
+podman run -it --rm \
+    -v /dev/kvm:/dev/kvm \
+    -e DISPLAY=$DISPLAY \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    ghcr.io/floatingskies/anubis-os:latest /bin/bash
+```
+
+### Iterate on a script
+Every script is idempotent. To re-run one against the live system:
+```bash
+sudo bash /path/to/script.sh
+```
+
+For user-side scripts:
+```bash
+ujust setup-shell       # or any other recipe
+```
+
+### Add a new `ujust` recipe
+Edit `files/usr/share/ublue-os/just/anubis.just` and add a new recipe block:
+```just
+[group('anubis')]
+my-recipe:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "Hello from my recipe"
+```
+
+Rebuild. The recipe shows up in `ujust --list` on the next boot.
+
+### Replace the placeholder logo
+```bash
+# Replace this with your real Anubis logo (256×256 PNG, transparent background):
+files/usr/share/pixmaps/anubis-logo.png
+```
+
+Rebuild. The logo will appear on SDDM, KInfoCenter, the icon theme, and
+Plymouth.
+
+---
+
+## Credits
+
+- [Universal Blue](https://universal-blue.org/) — the base images + the `ujust` ecosystem.
+- [BlueBuild](https://blue-build.org/) — the recipe format + build tooling.
+- [CachyOS](https://cachyos.org/) — inspiration for the performance layer + the scx-scheds COPR.
+- [Fedora Kinoite](https://kinoite.fedoraproject.org/) — the actual distribution underneath.
+
+Anubis OS is an independent project and is not affiliated with any of the
+above.

@@ -1,0 +1,69 @@
+# =============================================================================
+#  Anubis OS — default Brewfile
+# -----------------------------------------------------------------------------
+#  Homebrew bundle for Anubis OS. Edit your LOCAL copy at
+#  ~/.config/anubis-os/Brewfile (run: `ujust setup-brew` to seed it from this
+#  file). Image upgrades will NEVER overwrite your local copy.
+# =============================================================================
+
+# --- Modern CLI tools (fresher than Fedora repos) ----------------------------
+brew "gh"
+brew "lazygit"
+brew "lazydocker"
+brew "bottom"
+brew "k9s"
+brew "kubectl"
+brew "helm"
+brew "kubectx"
+brew "kubeseal"
+brew "flux"
+brew "argocd"
+brew "terraform"
+brew "tofu"
+brew "ansible"
+brew "pulumi"
+brew "uv"
+brew "ruff"
+brew "mise"
+brew "fnm"
+brew "deno"
+brew "bun"
+brew "go-task"
+brew "just"
+brew "dust"
+brew "procs"
+brew "sd"
+brew "tealdeer"
+brew "xh"
+brew "gping"
+brew "bandwhich"
+brew "difftastic"
+brew "git-delta"
+brew "gitui"
+brew "tig"
+brew "jless"
+brew "fastmod"
+brew "ripgrep"
+brew "fd"
+brew "fzf"
+brew "bat"
+brew "eza"
+brew "zoxide"
+brew "starship"
+brew "direnv"
+
+# --- Editors ----------------------------------------------------------------
+brew "neovim"
+brew "helix"
+
+# --- Fonts (Nerd Font patches) ----------------------------------------------
+tap "homebrew/cask-fonts"
+cask "font-jetbrains-mono-nerd-font"
+cask "font-fira-code-nerd-font"
+cask "font-hack-nerd-font"
+cask "font-meslo-lg-nerd-font"
+cask "font-cascadia-code-nerd-font"
+
+# --- Taps -------------------------------------------------------------------
+tap "homebrew/bundle"
+tap "homebrew/services"
