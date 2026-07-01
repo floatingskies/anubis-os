@@ -1,27 +1,28 @@
+# yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
 # =============================================================================
-#  Anubis OS — recipe.yml  (KDE / Kinoite edition)
+#  Anubis OS - recipe.yml  (KDE / Kinoite edition)
 # -----------------------------------------------------------------------------
 #  CachyOS-flavoured, security-minded, gaming-ready immutable Fedora with a
-#  DIY KDE Plasma desktop. Targets ≤ 1.5 GB RAM at idle on a fresh boot.
+#  DIY KDE Plasma desktop. Targets <= 1.5 GB RAM at idle on a fresh boot.
 #
 #  Design pillars
 #  --------------
-#    1. Performance     — tuned + scx-scheds (sched_ext) + aggressive sysctl,
+#    1. Performance     - tuned + scx-scheds (sched_ext) + aggressive sysctl,
 #                         zram, mq-deadline/none IO schedulers, earlyoom/nohang.
-#    2. DIY / minimal   — KDE Plasma core app set, no bloat. Every extra app
+#    2. DIY / minimal   - KDE Plasma core app set, no bloat. Every extra app
 #                         is an opt-in `ujust` command or a Flatpak.
-#    3. CLI-first       — modern Unix toolbelt (eza, bat, fd, rg, fzf, zoxide,
+#    3. CLI-first       - modern Unix toolbelt (eza, bat, fd, rg, fzf, zoxide,
 #                         delta, btop, fastfetch, starship, oh-my-bash).
-#    4. Brew layer      — Homebrew for userland CLI/GUI apps, fully upgradeable
+#    4. Brew layer      - Homebrew for userland CLI/GUI apps, fully upgradeable
 #                         in-place (no reinstall needed).
-#    5. Ujust           — every post-install action is a `ujust <recipe>`.
-#    6. KDE defaults    — no GNOME extensions. Stock Plasma 6 with a curated
+#    5. Ujust           - every post-install action is a `ujust <recipe>`.
+#    6. KDE defaults    - no GNOME extensions. Stock Plasma 6 with a curated
 #                         look (dark theme, JetBrains Mono, Anubis wallpaper,
 #                         Anubis logo on SDDM + lockscreen + KInfoCenter).
-#    7. Lean idle       — Baloo disabled, Akonadi masked, KWin effects trimmed,
-#                         no PIM daemons. Target: 1.3–1.5 GB RAM at idle.
-#    8. RPM-only base   — broad x86_64 hardware support (1st-gen Intel Core →
-#                         current, all AMD64). Stock Fedora kernel — rides
+#    7. Lean idle       - Baloo disabled, Akonadi masked, KWin effects trimmed,
+#                         no PIM daemons. Target: 1.3-1.5 GB RAM at idle.
+#    8. RPM-only base   - broad x86_64 hardware support (1st-gen Intel Core ->
+#                         current, all AMD64). Stock Fedora kernel - rides
 #                         Fedora's regular cadence.
 # =============================================================================
 
@@ -30,18 +31,12 @@ name: anubis-os
 description: >-
   CachyOS-flavoured, security-focused, gaming-ready immutable Fedora with a
   DIY KDE Plasma 6 desktop, modern CLI toolbelt, Homebrew layer, ujust
-  management, and ≤1.5 GB idle RAM. RPM-only base, broad x86_64 support.
+  management, and <=1.5 GB idle RAM. RPM-only base, broad x86_64 support.
 
 # ublue kinoite-main = KDE Plasma 6 ostree base. We replace the stock branding
 # and tune the system on top of it.
 base-image: ghcr.io/ublue-os/kinoite-main
 image-version: "44"
-
-# Aliases so users can `rpm-ostree rebase ostree-image-signed:anubis-os:stable`.
-aliases:
-  - latest
-  - stable
-  - "44"
 
 # =============================================================================
 #  MODULE PIPELINE
@@ -55,12 +50,12 @@ aliases:
 #    F. Gaming                  (gamemode, mangohud, gamescope, vkbasalt)
 #    G. KDE Plasma desktop      (apps + plasma-workspace)
 #    H. Security                (firewalld, firejail, usbguard, clamav)
+#    H2. Anaconda WebUI Live    (browser-based ISO installer)
 #    I. Brew layer              (Homebrew)
 #    J. Flatpaks                (pre-baked offline install)
-#    K. Static files            (files/ tree → /)
+#    K. Static files            (files/ tree -> /)
 #    L. Build-time scripts      (branding, plymouth, performance, ujust, etc.)
-#    M. First-boot wiring       (systemd units for user-side setup)
-#    N. Signing                 (cosign)
+#    M. Signing                 (cosign)
 # =============================================================================
 
 modules:
@@ -68,31 +63,33 @@ modules:
   # ---------------------------------------------------------------------------
   #  A. Repo hygiene
   # ---------------------------------------------------------------------------
-  - name: Repo hygiene — remove broken negativo17 repo
-    type: script
+
+  # Remove broken negativo17 repo + clean dnf cache
+  - type: script
     snippets:
       - grep -rl 'negativo17.org' /etc/yum.repos.d/ 2>/dev/null | xargs -r rm -f
       - dnf clean all
 
-  - name: RPM Fusion + COPRs
-    type: rpm-ostree
+  # RPM Fusion + COPRs (Terra codecs, CachyOS sched_ext, ananicy-cpp)
+  - type: rpm-ostree
     install:
       - rpmfusion-free-release
       - rpmfusion-nonfree-release
     repos:
-      # Terra — modern codec set (HEVC, AV1, MPEG-2, AC3, AAC-LC).
+      # Terra - modern codec set (HEVC, AV1, MPEG-2, AC3, AAC-LC).
       - https://copr.fedorainfracloud.org/coprs/terra/terra/repo/fedora-%OS_VERSION%/terra-terra-fedora-%OS_VERSION%.repo
-      # CachyOS kernel addons — sched_ext schedulers (scx_lavd, scx_rustland,
-      # scx_bpfland). Userspace BPF scheduler binaries on stock kernel ≥ 6.12.
+      # CachyOS kernel addons - sched_ext schedulers (scx_lavd, scx_rustland,
+      # scx_bpfland). Userspace BPF scheduler binaries on stock kernel >= 6.12.
       - https://copr.fedorainfracloud.org/coprs/bieszczaders/kernel-cachyos-addons/repo/fedora-%OS_VERSION%/bieszczaders-kernel-cachyos-addons-fedora-%OS_VERSION%.repo
-      # Ananicy-cpp — process priority daemon.
+      # Ananicy-cpp - process priority daemon.
       - https://copr.fedorainfracloud.org/coprs/zeno/ananicy-cpp/repo/fedora-%OS_VERSION%/zeno-ananicy-cpp-fedora-%OS_VERSION%.repo
 
   # ---------------------------------------------------------------------------
-  #  B. Base RPM layer — codecs, hw enablement, perf baseline
+  #  B. Base RPM layer - codecs, hw enablement, perf baseline
   # ---------------------------------------------------------------------------
-  - name: Codecs + multimedia
-    type: rpm-ostree
+
+  # Codecs + multimedia
+  - type: rpm-ostree
     install:
       - ffmpeg
       - ffmpeg-libs
@@ -115,8 +112,8 @@ modules:
       - opus
       - flac
 
-  - name: Hardware enablement
-    type: rpm-ostree
+  # Hardware enablement
+  - type: rpm-ostree
     install:
       - fwupd
       - fwupd-efi
@@ -138,10 +135,11 @@ modules:
       - upower
 
   # ---------------------------------------------------------------------------
-  #  C. Performance tuning — CachyOS/Arch grade on stock kernel
+  #  C. Performance tuning - CachyOS/Arch grade on stock kernel
   # ---------------------------------------------------------------------------
-  - name: Performance daemons + schedulers
-    type: rpm-ostree
+
+  # Performance daemons + schedulers
+  - type: rpm-ostree
     install:
       - tuned
       - tuned-ppd
@@ -157,8 +155,8 @@ modules:
       - ananicy-cpp
       - zram-generator
 
-  - name: Enable performance daemons
-    type: script
+  # Enable performance daemons
+  - type: script
     snippets:
       - systemctl enable tuned.service
       - systemctl enable tuned-ppd.service
@@ -170,10 +168,11 @@ modules:
       - systemctl mask power-profiles-daemon.service || true
 
   # ---------------------------------------------------------------------------
-  #  D. CLI toolbelt — modern Unix tools
+  #  D. CLI toolbelt - modern Unix tools
   # ---------------------------------------------------------------------------
-  - name: Modern CLI toolbelt
-    type: rpm-ostree
+
+  # Modern CLI toolbelt
+  - type: rpm-ostree
     install:
       - bash-completion
       - zsh
@@ -239,8 +238,9 @@ modules:
   # ---------------------------------------------------------------------------
   #  E. Development tooling
   # ---------------------------------------------------------------------------
-  - name: Container + dev tooling
-    type: rpm-ostree
+
+  # Container + dev tooling
+  - type: rpm-ostree
     install:
       - podman
       - podman-compose
@@ -276,10 +276,11 @@ modules:
       - kernel-headers
 
   # ---------------------------------------------------------------------------
-  #  F. Gaming (rpm-only base — Steam/Lutris stay Flatpak, see J)
+  #  F. Gaming (rpm-only base - Steam/Lutris stay Flatpak, see J)
   # ---------------------------------------------------------------------------
-  - name: Gaming support (base layer)
-    type: rpm-ostree
+
+  # Gaming support (base layer)
+  - type: rpm-ostree
     install:
       - gamescope
       - mangoapp
@@ -289,10 +290,11 @@ modules:
       - wine-core
 
   # ---------------------------------------------------------------------------
-  #  G. KDE Plasma desktop (DIY core — minimal, lean, no PIM daemons)
+  #  G. KDE Plasma desktop (DIY core - minimal, lean, no PIM daemons)
   # ---------------------------------------------------------------------------
-  - name: KDE Plasma 6 core
-    type: rpm-ostree
+
+  # KDE Plasma 6 core
+  - type: rpm-ostree
     install:
       # Plasma shell
       - plasma-desktop
@@ -300,8 +302,8 @@ modules:
       - plasma-workspace-wayland
       - plasma-nm
       - plasma-pa
-      - plasma-discover
-      - plasma-discover-notifier
+      # NOTE: plasma-discover + plasma-discover-notifier intentionally NOT
+      # installed. The default app store is Bazaar (Flatpak) - see stage J.
       - plasma-firewall
       - plasma-systemmonitor
       - plasma-browser-integration
@@ -359,13 +361,13 @@ modules:
       - inter-fonts
       # Browser
       - firefox
-      # Background-logo on SDDM (already handled by setup-logo.sh)
 
   # ---------------------------------------------------------------------------
   #  H. Security
   # ---------------------------------------------------------------------------
-  - name: User security
-    type: rpm-ostree
+
+  # User security
+  - type: rpm-ostree
     install:
       - firewalld
       - firewalld-config
@@ -382,24 +384,49 @@ modules:
       - aide
       - polkit
 
-  - name: Enable security services
-    type: script
+  # Enable security services
+  - type: script
     snippets:
       - systemctl enable firewalld.service
       - systemctl enable usbguard.service
       - systemctl enable clamav-freshclam.service || true
 
   # ---------------------------------------------------------------------------
-  #  I. Brew layer (Homebrew — apps upgradeable in-place, no reinstall)
+  #  H2. Anaconda WebUI Live - modern browser-based installer for the ISO
+  #      The ISO boots into a Plasma session and presents an "Install Anubis"
+  #      icon; clicking it launches `anaconda-webui` which opens a localhost
+  #      web installer the user interacts with via Firefox. The same RPMs
+  #      also enable `initial-setup` for first-login user creation.
+  #      These packages are installed at image-build time so the ISO does NOT
+  #      need to fetch them from the network at install time.
   # ---------------------------------------------------------------------------
-  - name: Homebrew layer
-    type: brew
+
+  # Anaconda WebUI Live installer
+  - type: rpm-ostree
+    install:
+      - anaconda-webui             # WebUI installer frontend
+      - anaconda-install-env-deps  # runtime deps for the install environment
+      - anaconda-dracut            # dracut module to inject installer into initrd
+      - initial-setup              # first-login user/password setup
+      - initial-setup-gui          # GUI variant for initial-setup
+      - lorax                      # ISO authoring tools (used by bluebuild generate-iso)
+      - lorax-composer             # composer backend
+      - pykickstart                # kickstart parser (for any custom ks files)
+      - livecd-tools               # live image creation helpers
+
+  # ---------------------------------------------------------------------------
+  #  I. Brew layer (Homebrew - apps upgradeable in-place, no reinstall)
+  # ---------------------------------------------------------------------------
+
+  # Homebrew layer
+  - type: brew
 
   # ---------------------------------------------------------------------------
   #  J. Pre-baked Flatpaks (offline install on the ISO)
   # ---------------------------------------------------------------------------
-  - name: Pre-baked Flatpaks
-    type: default-flatpaks
+
+  # Pre-baked Flatpaks
+  - type: default-flatpaks
     configurations:
       - scope: system
         install:
@@ -423,10 +450,11 @@ modules:
           - com.ranfdev.DistroShelf
 
   # ---------------------------------------------------------------------------
-  #  K. Static files (files/ tree → /)
+  #  K. Static files (files/ tree -> /)
   # ---------------------------------------------------------------------------
-  - name: Static system files
-    type: files
+
+  # Static system files
+  - type: files
     files:
       - source: files
         destination: /
@@ -434,8 +462,9 @@ modules:
   # ---------------------------------------------------------------------------
   #  L. Build-time scripts (run during image build, NOT at first boot)
   # ---------------------------------------------------------------------------
-  - name: Build-time setup scripts
-    type: script
+
+  # Build-time setup scripts
+  - type: script
     scripts:
       # 1. Branding
       - setup-os-release.sh
@@ -443,30 +472,30 @@ modules:
       - setup-logo.sh
       # 2. Boot visual
       - setup-plymouth.sh
-      # 3. Desktop — KDE wallpapers + Plasma defaults
+      # 3. Desktop - KDE wallpapers + Plasma defaults + Bazaar as default app store
       - setup-wallpaper.sh
       - setup-kde-defaults.sh
-      # 4. Performance — tuned, sysctl, udev, sched_ext, + KDE RAM savings
+      - setup-bazaar-default.sh
+      # 4. Performance - tuned, sysctl, udev, sched_ext, + KDE RAM savings
       - setup-performance.sh
-      # 5. CLI shell — oh-my-bash, starship, fastfetch config in /etc/skel
+      # 5. CLI shell - oh-my-bash, starship, fastfetch config in /etc/skel
       - setup-ohmybash.sh
-      # 6. Ujust — install custom just recipes
+      # 6. Ujust - install custom just recipes
       - setup-ujust.sh
-      # 7. Brew — seed the user Brewfile
+      # 7. Brew - seed the user Brewfile
       - setup-brew.sh
       # 8. First-boot wiring
       - setup-first-boot.sh
       # 9. Enable the first-boot units
       - enable-first-boot-units.sh
-      # 10. Permissions — set modes/contexts on everything shipped
+      # 10. Boot verification - Plymouth/wallpaper/tuned/scx enforced on EVERY boot
+      - setup-boot-verify.sh
+      # 11. Permissions - set modes/contexts on everything shipped
       - set-permissions.sh
 
   # ---------------------------------------------------------------------------
-  #  M. First-boot wiring (units are written by setup-first-boot.sh)
+  #  M. Signing
   # ---------------------------------------------------------------------------
 
-  # ---------------------------------------------------------------------------
-  #  N. Signing
-  # ---------------------------------------------------------------------------
-  - name: Sign the image with cosign
-    type: signing
+  # Sign the image with cosign
+  - type: signing
