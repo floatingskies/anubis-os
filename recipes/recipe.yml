@@ -70,189 +70,56 @@ modules:
       - grep -rl 'negativo17.org' /etc/yum.repos.d/ 2>/dev/null | xargs -r rm -f
       - dnf clean all
 
-  # Download all third-party repo files with 404 fallback.
-  # Fedora 44 is pre-release; RPM Fusion and some COPRs don't have F44 builds yet.
-  # We download the .repo files directly (so rpm-ostree can use them) and skip
-  # any that 404. The build continues regardless.
+  # Add COPR repos (Terra codecs, CachyOS sched_ext, ananicy-cpp).
+  # RPM Fusion is ALREADY enabled in the ublue kinoite-main base image -
+  # no need to set it up here.
   #
-  # RPM Fusion doesn't ship rpmfusion-*-release packages in the Fedora repos,
-  # so we download the .repo files directly from their mirror.
+  # COPRs may not have Fedora 44 builds yet (F44 is pre-release), so we
+  # download each .repo file with curl and skip any that 404.
   - type: script
     snippets:
       - |
         OS_VER=$(grep '^VERSION_ID=' /etc/os-release | cut -d= -f2 | tr -d '"')
         echo "Fedora version: $OS_VER"
-        try_repo() {
+        try_copr() {
           local name="$1" url="$2"
-          echo "Trying repo: $name"
-          echo "  URL: $url"
+          echo "Trying COPR: $name"
           if curl -fsSL "$url" -o "/etc/yum.repos.d/${name}.repo" 2>/dev/null; then
             echo "  OK: downloaded"
           else
-            echo "  SKIP: 404 or download failed (may not have F${OS_VER} builds yet)"
+            echo "  SKIP: 404 or download failed (COPR may not have F${OS_VER} builds yet)"
             rm -f "/etc/yum.repos.d/${name}.repo"
           fi
         }
-
-        # RPM Fusion (free + nonfree) - codecs, ffmpeg, proprietary drivers
-        # These .repo files are static URLs on the RPM Fusion mirror.
-        try_repo "rpmfusion-free" \
-          "https://mirrors.rpmfusion.org/mirrorlist?repo=free-fedora-${OS_VER}&arch=x86_64"
-        try_repo "rpmfusion-free-updates" \
-          "https://mirrors.rpmfusion.org/mirrorlist?repo=free-updates-released-fedora-${OS_VER}&arch=x86_64"
-        try_repo "rpmfusion-nonfree" \
-          "https://mirrors.rpmfusion.org/mirrorlist?repo=nonfree-fedora-${OS_VER}&arch=x86_64"
-        try_repo "rpmfusion-nonfree-updates" \
-          "https://mirrors.rpmfusion.org/mirrorlist?repo=nonfree-updates-released-fedora-${OS_VER}&arch=x86_64"
-
-        # Terra COPR - modern codec set (HEVC, AV1, MPEG-2, AC3, AAC-LC).
-        # Optional: RPM Fusion already provides ffmpeg + gstreamer codecs.
-        try_repo "terra-terra" \
+        # Terra - modern codec set (HEVC, AV1, MPEG-2, AC3, AAC-LC).
+        # Optional: RPM Fusion (already in base image) provides ffmpeg + codecs.
+        try_copr "terra-terra" \
           "https://copr.fedorainfracloud.org/coprs/terra/terra/repo/fedora-${OS_VER}/terra-terra-fedora-${OS_VER}.repo"
-
-        # CachyOS kernel addons COPR - sched_ext schedulers (scx_lavd, scx_rustland,
+        # CachyOS kernel addons - sched_ext schedulers (scx_lavd, scx_rustland,
         # scx_bpfland). Userspace BPF scheduler binaries on stock kernel >= 6.12.
-        try_repo "bieszczaders-kernel-cachyos-addons" \
+        try_copr "bieszczaders-kernel-cachyos-addons" \
           "https://copr.fedorainfracloud.org/coprs/bieszczaders/kernel-cachyos-addons/repo/fedora-${OS_VER}/bieszczaders-kernel-cachyos-addons-fedora-${OS_VER}.repo"
-
-        # Ananicy-cpp COPR - process priority daemon.
-        try_repo "zeno-ananicy-cpp" \
+        # Ananicy-cpp - process priority daemon.
+        try_copr "zeno-ananicy-cpp" \
           "https://copr.fedorainfracloud.org/coprs/zeno/ananicy-cpp/repo/fedora-${OS_VER}/zeno-ananicy-cpp-fedora-${OS_VER}.repo"
-
-        # Write proper RPM Fusion .repo files if the mirrorlist downloads
-        # returned a mirrorlist (not a direct .repo). The mirrorlist URL
-        # returns a list of mirrors; dnf knows how to handle it, but we need
-        # the [repo] header. Write proper config files instead.
-        for kind in free nonfree; do
-          for ver in "" "-updates"; do
-            repofile="/etc/yum.repos.d/rpmfusion-${kind}${ver}.repo"
-            if [[ -f "$repofile" ]] && ! grep -q '^\[' "$repofile"; then
-              # The download returned a mirrorlist, not a .repo file.
-              # Write a proper .repo file that uses the mirrorlist.
-              rm -f "$repofile"
-            fi
-          done
-        done
-
-        # Download RPM Fusion GPG keys directly to /etc/pki/rpm-gpg/
-        # (the rpmfusion-*-release package that normally installs them isn't
-        # available for Fedora 44 pre-release, so we fetch them ourselves).
-        mkdir -p /etc/pki/rpm-gpg
-        for kind in free nonfree; do
-          keyfile="/etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-${kind}-fedora-${OS_VER}"
-          if [[ ! -f "$keyfile" ]]; then
-            # Try multiple GPG key URLs (RPM Fusion publishes keys at a few locations)
-            for url in \
-              "https://rpmfusion.org/keys?action=Attachment&do=get&target=RPM-GPG-KEY-rpmfusion-${kind}-fedora-${OS_VER}" \
-              "https://raw.githubusercontent.com/rpmfusion/rpmfusion-infrastructure/master/keys/RPM-GPG-KEY-rpmfusion-${kind}-fedora-${OS_VER}" \
-            ; do
-              if curl -fsSL "$url" -o "$keyfile" 2>/dev/null; then
-                echo "  OK: downloaded GPG key for rpmfusion-${kind} (Fedora ${OS_VER})"
-                break
-              fi
-            done
-            # If all URLs failed, try the "primary" key (version-agnostic)
-            if [[ ! -f "$keyfile" ]] || [[ ! -s "$keyfile" ]]; then
-              rm -f "$keyfile"
-              for url in \
-                "https://rpmfusion.org/keys?action=Attachment&do=get&target=RPM-GPG-KEY-rpmfusion-${kind}-fedora-primary" \
-                "https://raw.githubusercontent.com/rpmfusion/rpmfusion-infrastructure/master/keys/RPM-GPG-KEY-rpmfusion-${kind}-fedora-primary" \
-              ; do
-                if curl -fsSL "$url" -o "$keyfile" 2>/dev/null; then
-                  echo "  OK: downloaded primary GPG key for rpmfusion-${kind}"
-                  break
-                fi
-              done
-            fi
-          fi
-        done
-
-        # Write proper RPM Fusion .repo files.
-        # On Fedora 44 pre-release, the GPG key files may not be installable
-        # (the rpmfusion-*-release package isn't available yet), so we set
-        # gpgcheck=0 as a fallback. The user can re-enable gpgcheck after
-        # install by running `ujust install-rpm rpmfusion-free-release`.
-        GPGCHECK_FREE=0
-        GPGCHECK_NONFREE=0
-        [[ -f /etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-free-fedora-${OS_VER} ]] && GPGCHECK_FREE=1
-        [[ -f /etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-nonfree-fedora-${OS_VER} ]] && GPGCHECK_NONFREE=1
-
-        echo "GPG check (free):    ${GPGCHECK_FREE}"
-        echo "GPG check (nonfree): ${GPGCHECK_NONFREE}"
-
-        # Helper: write a .repo file with conditional gpgkey line
-        write_rpmfusion_repo() {
-          local file="$1" name="$2" mirror="$3" kind="$4"
-          {
-            echo "[${name}]"
-            echo "name=RPM Fusion for Fedora ${OS_VER} - ${kind}"
-            echo "mirrorlist=${mirror}"
-            echo "enabled=1"
-            echo "metadata_expire=7d"
-            if [[ "$kind" == Free* ]] || [[ "$kind" == *Free* ]]; then
-              echo "gpgcheck=${GPGCHECK_FREE}"
-              [[ $GPGCHECK_FREE -eq 1 ]] && echo "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-free-fedora-${OS_VER}"
-            else
-              echo "gpgcheck=${GPGCHECK_NONFREE}"
-              [[ $GPGCHECK_NONFREE -eq 1 ]] && echo "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-nonfree-fedora-${OS_VER}"
-            fi
-          } > "$file"
-        }
-
-        write_rpmfusion_repo /etc/yum.repos.d/rpmfusion-free.repo \
-          rpmfusion-free \
-          "https://mirrors.rpmfusion.org/mirrorlist?repo=free-fedora-${OS_VER}&arch=x86_64" \
-          "Free"
-
-        write_rpmfusion_repo /etc/yum.repos.d/rpmfusion-free-updates.repo \
-          rpmfusion-free-updates \
-          "https://mirrors.rpmfusion.org/mirrorlist?repo=free-updates-released-fedora-${OS_VER}&arch=x86_64" \
-          "Free - Updates"
-
-        write_rpmfusion_repo /etc/yum.repos.d/rpmfusion-nonfree.repo \
-          rpmfusion-nonfree \
-          "https://mirrors.rpmfusion.org/mirrorlist?repo=nonfree-fedora-${OS_VER}&arch=x86_64" \
-          "Nonfree"
-
-        write_rpmfusion_repo /etc/yum.repos.d/rpmfusion-nonfree-updates.repo \
-          rpmfusion-nonfree-updates \
-          "https://mirrors.rpmfusion.org/mirrorlist?repo=nonfree-updates-released-fedora-${OS_VER}&arch=x86_64" \
-          "Nonfree - Updates"
-
-        # Import RPM Fusion GPG keys (non-fatal if it fails)
-        for keyfile in /etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-*; do
-          [[ -f "$keyfile" ]] && rpm --import "$keyfile" 2>/dev/null || true
-        done
-
-        echo "Third-party repo setup complete."
-
-  # Install RPM Fusion release packages IF they're available in any repo.
-  # On Fedora 44 (pre-release), they may not exist yet. We try and continue.
-  - type: script
-    snippets:
-      - |
-        # Try to install rpmfusion-*-release packages.
-        # These are normally in the Fedora repos, but may not exist for F44 yet.
-        for pkg in rpmfusion-free-release rpmfusion-nonfree-release; do
-          if dnf repoquery --whatprovides "$pkg" 2>/dev/null | grep -q "$pkg"; then
-            echo "Installing $pkg ..."
-            rpm-ostree install "$pkg" && echo "  OK: $pkg installed" || \
-              echo "  WARN: $pkg install failed (continuing)"
-          else
-            echo "SKIP: $pkg not available in any repo (Fedora 44 pre-release)"
-          fi
-        done
+        echo "COPR repo setup complete."
 
   # ---------------------------------------------------------------------------
   #  B. Base RPM layer - codecs, hw enablement, perf baseline
   # ---------------------------------------------------------------------------
 
-  # Codecs + multimedia (Fedora stock - always available)
+  # Codecs + multimedia (Fedora stock + RPM Fusion)
+  # RPM Fusion is already enabled in the ublue kinoite-main base image.
   - type: rpm-ostree
     install:
+      - ffmpeg
+      - ffmpeg-libs
       - gstreamer1-plugins-base
       - gstreamer1-plugins-good
+      - gstreamer1-plugins-bad-free
+      - gstreamer1-plugins-ugly-free
       - gstreamer1-vaapi
+      - gstreamer1-libav
       - libva
       - libva-intel-driver
       - intel-media-driver
@@ -262,26 +129,9 @@ modules:
       - pipewire-pulseaudio
       - pipewire-jack-audio-connection-kit
       - wireplumber
+      - lame
       - opus
       - flac
-
-  # Codecs that come from RPM Fusion (ffmpeg, gstreamer-ugly, gstreamer-bad, lame)
-  # Install resiliently - skip if RPM Fusion isn't available for F44 yet.
-  - type: script
-    snippets:
-      - |
-        # These packages come from RPM Fusion. If RPM Fusion isn't available
-        # for Fedora 44 yet, skip them and continue. The user can install
-        # later via `ujust install-rpm ffmpeg` once RPM Fusion has F44 builds.
-        RPMFUSION_PKGS="ffmpeg ffmpeg-libs gstreamer1-plugins-bad-free gstreamer1-plugins-ugly-free gstreamer1-libav lame"
-        for pkg in $RPMFUSION_PKGS; do
-          if dnf repoquery --whatprovides "$pkg" 2>/dev/null | grep -q "$pkg"; then
-            echo "Installing $pkg ..."
-            rpm-ostree install "$pkg" && echo "  OK: $pkg" || echo "  WARN: $pkg failed"
-          else
-            echo "SKIP: $pkg not in any repo (RPM Fusion may not have F44 builds yet)"
-          fi
-        done
 
   # Hardware enablement
   - type: rpm-ostree
