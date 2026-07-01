@@ -115,7 +115,7 @@ jobs:
           cat anubis-os-webui-live.sha256sum
 
       - name: Upload ISO artifact (14 days)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: anubis-os-webui-live
           path: iso-out/*
