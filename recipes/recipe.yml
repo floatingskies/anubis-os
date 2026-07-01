@@ -109,7 +109,7 @@ modules:
   # ---------------------------------------------------------------------------
 
   # Codecs + multimedia (Fedora stock + RPM Fusion)
-  # RPM Fusion is already enabled in the ublue kinoite-main base image.
+  # ffmpeg + lame + gstreamer codecs all install fine on F44.
   - type: rpm-ostree
     install:
       - ffmpeg
@@ -121,9 +121,6 @@ modules:
       - gstreamer1-vaapi
       - gstreamer1-libav
       - libva
-      - libva-intel-driver
-      - intel-media-driver
-      - libva-vdpau-driver
       - pipewire
       - pipewire-alsa
       - pipewire-pulseaudio
@@ -132,6 +129,20 @@ modules:
       - lame
       - opus
       - flac
+
+  # VA-API hardware video drivers (Intel iGPU + VDPAU shim).
+  # These may not exist on Fedora 44 pre-release — install resiliently.
+  - type: script
+    snippets:
+      - |
+        for pkg in intel-media-driver libva-intel-driver libva-vdpau-driver; do
+          if dnf repoquery "$pkg" 2>/dev/null | grep -q "$pkg"; then
+            echo "Installing $pkg ..."
+            rpm-ostree install "$pkg" && echo "  OK: $pkg" || echo "  WARN: $pkg failed"
+          else
+            echo "SKIP: $pkg not in any repo (F44 pre-release)"
+          fi
+        done
 
   # Hardware enablement
   - type: rpm-ostree
