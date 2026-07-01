@@ -50,7 +50,7 @@ You have three paths into Anubis OS.
 
 ### The ISO (recommended for new installs)
 
-Grab the latest `anubis-os-webui-live` ISO from [Releases](https://github.com/floatingskies/anubis-os/releases). Flash it to a USB with [Fedora Writer](https://flathub.org/apps/org.fedoraproject.MediaWriter) or `dd`, boot it, and click **Install Anubis OS** on the live desktop. Anaconda's WebUI installer opens in Firefox and walks you through disk, timezone, and account creation. The install pulls the Anubis OCI image directly from GHCR using `ostreecontainer`. First boot is Anubis. No Fedora Kinoite intermediate step, no post install rebase.
+Grab the latest `anubis-os-webui-live` ISO from [Releases](https://github.com/floatingskies/anubis-os/releases). Flash it to a USB with [Fedora Writer](https://flathub.org/apps/org.fedoraproject.MediaWriter) or `dd`, boot it, and the live session that comes up IS Anubis OS. KDE Plasma 6, Anubis wallpaper, Anubis Plymouth, all the CLI tools, all the Flatpaks. Firefox auto opens Anaconda's WebUI installer. Click Install, pick your disk, and the same Anubis image gets written to your hard drive. No Fedora Kinoite intermediary at any point.
 
 ### Rebase an existing Silverblue or Kinoite install
 
@@ -236,13 +236,15 @@ Nothing is paranoid. Nothing breaks your workflow. The defaults are tight enough
 
 ## Anaconda WebUI Live
 
-The ISO uses Anaconda's new WebUI installer. When you boot the `anubis-os-webui-live` ISO and click Install Anubis OS, Anaconda opens a localhost web installer in Firefox. You interact with it like a modern web app. Disk partitioning, timezone, account creation, all in a browser tab.
+The ISO is Anubis OS from the moment you boot it. Not Fedora Kinoite with a rebase queued for later. The live session IS Anubis OS.
 
-The install itself uses `ostreecontainer` under the hood, which means the installed system is Anubis OS directly. Not Fedora Kinoite with a rebase queued for first boot. Anubis OS, from the first reboot.
+When you flash the `anubis-os-webui-live` ISO to a USB and boot it, here is what happens, in order. GRUB loads with an Anubis branded boot menu. Plymouth shows the Anubis logo during early boot. The system auto logs in as the `anubis` live user into a KDE Plasma 6 desktop with the Anubis wallpaper, Breeze Dark theme, and all the CLI tools already installed. Firefox opens automatically and loads Anaconda's WebUI installer at `http://localhost:9090`. You interact with it like a modern web app. Disk partitioning, timezone, account creation, all in a browser tab.
 
-A custom kickstart file at `anubis-os.ks` preconfigures the install: en_US UTF 8, US keyboard, DHCP networking, hostname `anubis`, the Anubis OCI image as the install source, root account locked, `initial-setup` enabled for first login account creation, firewall enabled with SSH HTTP HTTPS, and the Anubis first boot services enabled at install time so they fire on the very first boot.
+When you click Install in the WebUI, Anaconda uses `ostreecontainer` to pull the same Anubis OCI image you are already running and writes it to your disk. The installed system is identical to the live session. Anubis OS, from the first reboot. No Fedora Kinoite intermediate step at any point.
 
-All Flatpaks are pre baked into the image at build time. The ISO is fully offline capable. No Flathub fetch during install.
+Two kickstart files make this work. `anubis-live.ks` configures the live session itself: hostname `anubis-live`, auto login, the desktop shortcut to launch the installer, Plymouth theme, and the live user with passwordless sudo. `anubis-os.ks` configures the actual disk install: the Anubis OCI image as the install source, root account locked, `initial-setup` enabled for first login account creation, firewall enabled with SSH HTTP HTTPS, and the Anubis first boot services enabled so they fire on the very first boot of the installed system.
+
+All Flatpaks are pre baked into the image at build time. The ISO is fully offline capable. No Flathub fetch during install, no network needed for the live session.
 
 ---
 
