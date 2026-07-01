@@ -134,46 +134,90 @@ modules:
           done
         done
 
-        # Write proper RPM Fusion .repo files using mirrorlists
-        cat > /etc/yum.repos.d/rpmfusion-free.repo <<'EOF'
-        [rpmfusion-free]
-        name=RPM Fusion for Fedora $releasever - Free
-        mirrorlist=https://mirrors.rpmfusion.org/mirrorlist?repo=free-fedora-$releasever&arch=$basearch
-        enabled=1
-        metadata_expire=7d
-        gpgcheck=1
-        gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-free-fedora-$releasever
-        EOF
+        # Download RPM Fusion GPG keys directly to /etc/pki/rpm-gpg/
+        # (the rpmfusion-*-release package that normally installs them isn't
+        # available for Fedora 44 pre-release, so we fetch them ourselves).
+        mkdir -p /etc/pki/rpm-gpg
+        for kind in free nonfree; do
+          keyfile="/etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-${kind}-fedora-${OS_VER}"
+          if [[ ! -f "$keyfile" ]]; then
+            # Try multiple GPG key URLs (RPM Fusion publishes keys at a few locations)
+            for url in \
+              "https://rpmfusion.org/keys?action=Attachment&do=get&target=RPM-GPG-KEY-rpmfusion-${kind}-fedora-${OS_VER}" \
+              "https://raw.githubusercontent.com/rpmfusion/rpmfusion-infrastructure/master/keys/RPM-GPG-KEY-rpmfusion-${kind}-fedora-${OS_VER}" \
+            ; do
+              if curl -fsSL "$url" -o "$keyfile" 2>/dev/null; then
+                echo "  OK: downloaded GPG key for rpmfusion-${kind} (Fedora ${OS_VER})"
+                break
+              fi
+            done
+            # If all URLs failed, try the "primary" key (version-agnostic)
+            if [[ ! -f "$keyfile" ]] || [[ ! -s "$keyfile" ]]; then
+              rm -f "$keyfile"
+              for url in \
+                "https://rpmfusion.org/keys?action=Attachment&do=get&target=RPM-GPG-KEY-rpmfusion-${kind}-fedora-primary" \
+                "https://raw.githubusercontent.com/rpmfusion/rpmfusion-infrastructure/master/keys/RPM-GPG-KEY-rpmfusion-${kind}-fedora-primary" \
+              ; do
+                if curl -fsSL "$url" -o "$keyfile" 2>/dev/null; then
+                  echo "  OK: downloaded primary GPG key for rpmfusion-${kind}"
+                  break
+                fi
+              done
+            fi
+          fi
+        done
 
-        cat > /etc/yum.repos.d/rpmfusion-free-updates.repo <<'EOF'
-        [rpmfusion-free-updates]
-        name=RPM Fusion for Fedora $releasever - Free - Updates
-        mirrorlist=https://mirrors.rpmfusion.org/mirrorlist?repo=free-updates-released-fedora-$releasever&arch=$basearch
-        enabled=1
-        metadata_expire=7d
-        gpgcheck=1
-        gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-free-fedora-$releasever
-        EOF
+        # Write proper RPM Fusion .repo files.
+        # On Fedora 44 pre-release, the GPG key files may not be installable
+        # (the rpmfusion-*-release package isn't available yet), so we set
+        # gpgcheck=0 as a fallback. The user can re-enable gpgcheck after
+        # install by running `ujust install-rpm rpmfusion-free-release`.
+        GPGCHECK_FREE=0
+        GPGCHECK_NONFREE=0
+        [[ -f /etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-free-fedora-${OS_VER} ]] && GPGCHECK_FREE=1
+        [[ -f /etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-nonfree-fedora-${OS_VER} ]] && GPGCHECK_NONFREE=1
 
-        cat > /etc/yum.repos.d/rpmfusion-nonfree.repo <<'EOF'
-        [rpmfusion-nonfree]
-        name=RPM Fusion for Fedora $releasever - Nonfree
-        mirrorlist=https://mirrors.rpmfusion.org/mirrorlist?repo=nonfree-fedora-$releasever&arch=$basearch
-        enabled=1
-        metadata_expire=7d
-        gpgcheck=1
-        gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-nonfree-fedora-$releasever
-        EOF
+        echo "GPG check (free):    ${GPGCHECK_FREE}"
+        echo "GPG check (nonfree): ${GPGCHECK_NONFREE}"
 
-        cat > /etc/yum.repos.d/rpmfusion-nonfree-updates.repo <<'EOF'
-        [rpmfusion-nonfree-updates]
-        name=RPM Fusion for Fedora $releasever - Nonfree - Updates
-        mirrorlist=https://mirrors.rpmfusion.org/mirrorlist?repo=nonfree-updates-released-fedora-$releasever&arch=$basearch
-        enabled=1
-        metadata_expire=7d
-        gpgcheck=1
-        gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-nonfree-fedora-$releasever
-        EOF
+        # Helper: write a .repo file with conditional gpgkey line
+        write_rpmfusion_repo() {
+          local file="$1" name="$2" mirror="$3" kind="$4"
+          {
+            echo "[${name}]"
+            echo "name=RPM Fusion for Fedora ${OS_VER} - ${kind}"
+            echo "mirrorlist=${mirror}"
+            echo "enabled=1"
+            echo "metadata_expire=7d"
+            if [[ "$kind" == Free* ]] || [[ "$kind" == *Free* ]]; then
+              echo "gpgcheck=${GPGCHECK_FREE}"
+              [[ $GPGCHECK_FREE -eq 1 ]] && echo "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-free-fedora-${OS_VER}"
+            else
+              echo "gpgcheck=${GPGCHECK_NONFREE}"
+              [[ $GPGCHECK_NONFREE -eq 1 ]] && echo "gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-nonfree-fedora-${OS_VER}"
+            fi
+          } > "$file"
+        }
+
+        write_rpmfusion_repo /etc/yum.repos.d/rpmfusion-free.repo \
+          rpmfusion-free \
+          "https://mirrors.rpmfusion.org/mirrorlist?repo=free-fedora-${OS_VER}&arch=x86_64" \
+          "Free"
+
+        write_rpmfusion_repo /etc/yum.repos.d/rpmfusion-free-updates.repo \
+          rpmfusion-free-updates \
+          "https://mirrors.rpmfusion.org/mirrorlist?repo=free-updates-released-fedora-${OS_VER}&arch=x86_64" \
+          "Free - Updates"
+
+        write_rpmfusion_repo /etc/yum.repos.d/rpmfusion-nonfree.repo \
+          rpmfusion-nonfree \
+          "https://mirrors.rpmfusion.org/mirrorlist?repo=nonfree-fedora-${OS_VER}&arch=x86_64" \
+          "Nonfree"
+
+        write_rpmfusion_repo /etc/yum.repos.d/rpmfusion-nonfree-updates.repo \
+          rpmfusion-nonfree-updates \
+          "https://mirrors.rpmfusion.org/mirrorlist?repo=nonfree-updates-released-fedora-${OS_VER}&arch=x86_64" \
+          "Nonfree - Updates"
 
         # Import RPM Fusion GPG keys (non-fatal if it fails)
         for keyfile in /etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-*; do
