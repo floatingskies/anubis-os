@@ -1,25 +1,42 @@
-name: Build anubis-os ISOs
+name: Build anubis-os-webui-live ISO
+
 on:
   workflow_dispatch:
     inputs:
       image:
-        description: "Qual imagem gerar ISO"
+        description: "Which image to generate ISO from"
         required: true
         default: "anubis-os"
         type: choice
         options:
           - anubis-os
 
+concurrency:
+  group: iso-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   iso-anubis-os:
-    name: ISO (anubis-os)
+    name: ISO (anubis-os-webui-live)
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Free disk space
+        run: |
+          echo "Before:"
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+                     /usr/local/.ghcup /opt/hostedtoolcache 2>/dev/null || true
+          sudo apt-get clean
+          sudo docker system prune -af --volumes 2>/dev/null || true
+          echo "After:"
+          df -h /
 
       - name: Install BlueBuild CLI
         run: |
@@ -35,19 +52,82 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # -------------------------------------------------------------------------
+      #  Generate the ISO.
+      #
+      #  The `generate-iso image` subcommand uses the OCI image as the live
+      #  tree. Combined with the live kickstart (anubis-live.ks), the entire
+      #  live session is Anubis OS:
+      #
+      #    - GRUB menu: "Anubis OS WebUI Live"
+      #    - Plymouth: Anubis logo
+      #    - Desktop: KDE Plasma 6 with Anubis wallpaper
+      #    - Auto-login: anubis user (passwordless)
+      #    - Firefox: auto-launches Anaconda WebUI installer
+      #
+      #  Kernel args:
+      #    inst.webui=true          - enable browser-based installer
+      #    inst.auto-webui=true     - auto-launch WebUI on boot
+      #    inst.geolocation=off     - don't phone home for location
+      #    liveuser=anubis          - the live session username
+      #    rhgb quiet               - Plymouth boot splash
+      # -------------------------------------------------------------------------
       - name: Generate ISO
         run: |
           IMAGE="ghcr.io/${{ github.repository_owner }}/anubis-os:latest"
           mkdir -p iso-out
+          echo "Generating anubis-os-webui-live ISO from $IMAGE ..."
+          echo "  Live tree: $IMAGE (Anubis OS, NOT Fedora Kinoite)"
+
           sudo bluebuild generate-iso \
             --output-dir iso-out \
-            --iso-name anubis-os.iso \
+            --iso-name anubis-os-webui-live \
+            --kickstart anubis-live.ks \
+            --kernel-arg "inst.webui=true" \
+            --kernel-arg "inst.auto-webui=true" \
+            --kernel-arg "inst.geolocation=off" \
+            --kernel-arg "inst.nodefaults" \
+            --kernel-arg "liveuser=anubis" \
+            --kernel-arg "rhgb quiet" \
             image "$IMAGE"
 
-      - name: Upload ISO artifact (7 dias)
+      - name: Verify ISO
+        run: |
+          echo "=== ISO files ==="
+          ls -lh iso-out/
+          if ! ls iso-out/*.iso >/dev/null 2>&1; then
+            echo "FAIL: no ISO generated"
+            exit 1
+          fi
+          ISO_SIZE=$(du -h iso-out/*.iso | cut -f1)
+          echo "ISO size: $ISO_SIZE"
+          # Sanity: ISO should be at least 2 GB (image + flatpaks + installer)
+          ISO_BYTES=$(stat -c%s iso-out/*.iso)
+          if [[ $ISO_BYTES -lt 2000000000 ]]; then
+            echo "WARN: ISO is smaller than 2 GB - Flatpaks may not have been baked in."
+          fi
+          echo "ISO build OK."
+
+      - name: Compute SHA256 checksum
+        run: |
+          cd iso-out
+          sha256sum *.iso > anubis-os-webui-live.sha256sum
+          cat anubis-os-webui-live.sha256sum
+
+      - name: Upload ISO artifact (14 days)
         uses: actions/upload-artifact@v4
         with:
-          name: iso-anubis-os
-          path: iso-out/*.iso
-          retention-days: 7
+          name: anubis-os-webui-live
+          path: iso-out/*
+          retention-days: 14
           if-no-files-found: error
+
+      - name: Attach ISO + checksum to release (on tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            iso-out/*.iso
+            iso-out/*.sha256sum
+          generate_release_notes: true
+          name: Anubis OS WebUI Live ${{ github.ref_name }}
