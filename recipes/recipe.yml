@@ -70,9 +70,12 @@ modules:
       - grep -rl 'negativo17.org' /etc/yum.repos.d/ 2>/dev/null | xargs -r rm -f
       - dnf clean all
 
-  # Download COPR repo files with 404 fallback.
-  # Fedora 44 is pre-release; some COPRs don't have F44 builds yet.
-  # We try each one and skip the ones that 404. The build continues regardless.
+  # Add COPR repos (Terra codecs, CachyOS sched_ext, ananicy-cpp).
+  # RPM Fusion is ALREADY enabled in the ublue kinoite-main base image -
+  # no need to set it up here.
+  #
+  # COPRs may not have Fedora 44 builds yet (F44 is pre-release), so we
+  # download each .repo file with curl and skip any that 404.
   - type: script
     snippets:
       - |
@@ -81,7 +84,6 @@ modules:
         try_copr() {
           local name="$1" url="$2"
           echo "Trying COPR: $name"
-          echo "  URL: $url"
           if curl -fsSL "$url" -o "/etc/yum.repos.d/${name}.repo" 2>/dev/null; then
             echo "  OK: downloaded"
           else
@@ -90,7 +92,7 @@ modules:
           fi
         }
         # Terra - modern codec set (HEVC, AV1, MPEG-2, AC3, AAC-LC).
-        # Optional: RPM Fusion already provides ffmpeg + gstreamer codecs.
+        # Optional: RPM Fusion (already in base image) provides ffmpeg + codecs.
         try_copr "terra-terra" \
           "https://copr.fedorainfracloud.org/coprs/terra/terra/repo/fedora-${OS_VER}/terra-terra-fedora-${OS_VER}.repo"
         # CachyOS kernel addons - sched_ext schedulers (scx_lavd, scx_rustland,
@@ -102,17 +104,12 @@ modules:
           "https://copr.fedorainfracloud.org/coprs/zeno/ananicy-cpp/repo/fedora-${OS_VER}/zeno-ananicy-cpp-fedora-${OS_VER}.repo"
         echo "COPR repo setup complete."
 
-  # RPM Fusion release packages (provides RPM Fusion repos for ffmpeg, codecs)
-  - type: rpm-ostree
-    install:
-      - rpmfusion-free-release
-      - rpmfusion-nonfree-release
-
   # ---------------------------------------------------------------------------
   #  B. Base RPM layer - codecs, hw enablement, perf baseline
   # ---------------------------------------------------------------------------
 
-  # Codecs + multimedia
+  # Codecs + multimedia (Fedora stock + RPM Fusion)
+  # RPM Fusion is already enabled in the ublue kinoite-main base image.
   - type: rpm-ostree
     install:
       - ffmpeg
