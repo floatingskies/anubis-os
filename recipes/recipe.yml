@@ -184,16 +184,14 @@ modules:
       - virt-manager
       - gh
       - glab
-      - code
       - python3
       - python3-pip
       - python3-devel
       - nodejs
       - npm
       - yarnpkg
-      - rust
+      - rustc
       - cargo
-      - go
       - make
       - cmake
       - ninja-build
