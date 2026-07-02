@@ -64,39 +64,55 @@ modules:
   #  A. Repo hygiene
   # ---------------------------------------------------------------------------
 
-  # Repo setup — follows ublue's actual pattern (ublue-os/main install.sh).
-  # The kinoite-main base image already adds negativo17's fedora-multimedia
-  # repo (priority=90) with the uncrippled mesa/libva/intel stack. We do NOT
-  # use RPM Fusion — ublue deliberately avoids it.
-  #
-  # COPRs: enable → install packages → disable (ublue's security pattern).
-  # Leaving a COPR enabled at runtime lets a malicious COPR inject fake
-  # versions of Fedora packages on the next update.
+  # Remove broken negativo17 repo + clean dnf cache
+  - type: script
+    snippets:
+      - grep -rl 'negativo17.org' /etc/yum.repos.d/ 2>/dev/null | xargs -r rm -f
+      - dnf clean all
+
+  # Download COPR repo files with 404 fallback.
+  # Fedora 44 is pre-release; some COPRs don't have F44 builds yet.
+  # We try each one and skip the ones that 404. The build continues regardless.
   - type: script
     snippets:
       - |
-        set -ouex pipefail
-        # Enable CachyOS COPR for sched_ext schedulers (scx-scheds).
-        # This COPR has F44 builds (verified 2026-06-29).
-        dnf5 -y copr enable bieszczaders/kernel-cachyos-addons
-        # Enable ananicy-cpp COPR for process priority daemon.
-        dnf5 -y copr enable zeno/ananicy-cpp
-        # Install COPR packages with the COPRs enabled, then disable them.
-        dnf5 -y install scx-scheds ananicy-cpp
-        dnf5 -y copr disable bieszczaders/kernel-cachyos-addons
-        dnf5 -y copr disable zeno/ananicy-cpp
-        echo "COPR packages installed + COPRs disabled (ublue security pattern)."
+        OS_VER=$(grep '^VERSION_ID=' /etc/os-release | cut -d= -f2 | tr -d '"')
+        echo "Fedora version: $OS_VER"
+        try_copr() {
+          local name="$1" url="$2"
+          echo "Trying COPR: $name"
+          echo "  URL: $url"
+          if curl -fsSL "$url" -o "/etc/yum.repos.d/${name}.repo" 2>/dev/null; then
+            echo "  OK: downloaded"
+          else
+            echo "  SKIP: 404 or download failed (COPR may not have F${OS_VER} builds yet)"
+            rm -f "/etc/yum.repos.d/${name}.repo"
+          fi
+        }
+        # Terra - modern codec set (HEVC, AV1, MPEG-2, AC3, AAC-LC).
+        # Optional: RPM Fusion already provides ffmpeg + gstreamer codecs.
+        try_copr "terra-terra" \
+          "https://copr.fedorainfracloud.org/coprs/terra/terra/repo/fedora-${OS_VER}/terra-terra-fedora-${OS_VER}.repo"
+        # CachyOS kernel addons - sched_ext schedulers (scx_lavd, scx_rustland,
+        # scx_bpfland). Userspace BPF scheduler binaries on stock kernel >= 6.12.
+        try_copr "bieszczaders-kernel-cachyos-addons" \
+          "https://copr.fedorainfracloud.org/coprs/bieszczaders/kernel-cachyos-addons/repo/fedora-${OS_VER}/bieszczaders-kernel-cachyos-addons-fedora-${OS_VER}.repo"
+        # Ananicy-cpp - process priority daemon.
+        try_copr "zeno-ananicy-cpp" \
+          "https://copr.fedorainfracloud.org/coprs/zeno/ananicy-cpp/repo/fedora-${OS_VER}/zeno-ananicy-cpp-fedora-${OS_VER}.repo"
+        echo "COPR repo setup complete."
+
+  # RPM Fusion release packages (provides RPM Fusion repos for ffmpeg, codecs)
+  - type: rpm-ostree
+    install:
+      - rpmfusion-free-release
+      - rpmfusion-nonfree-release
 
   # ---------------------------------------------------------------------------
   #  B. Base RPM layer - codecs, hw enablement, perf baseline
   # ---------------------------------------------------------------------------
 
   # Codecs + multimedia
-  # All package names verified against Fedora 44 packages.fedoraproject.org.
-  # - gstreamer1-vaapi: still ships on F44 (1.26.10-2.fc44)
-  # - libva-intel-media-driver: Fedora's free VAAPI driver for Intel Gen 8+
-  # - intel-vaapi-driver: legacy i965 driver for Intel Gen 5-9 (renamed from libva-intel-driver)
-  # - libva-vdpau-driver: RETIRED on F43+ — do NOT install
   - type: rpm-ostree
     install:
       - ffmpeg
@@ -108,8 +124,9 @@ modules:
       - gstreamer1-vaapi
       - gstreamer1-libav
       - libva
-      - libva-intel-media-driver
-      - intel-vaapi-driver
+      - libva-intel-driver
+      - intel-media-driver
+      - libva-vdpau-driver
       - pipewire
       - pipewire-alsa
       - pipewire-pulseaudio
@@ -159,9 +176,34 @@ modules:
       - earlyoom
       - nohang
       - zram-generator
-      # scx-scheds + ananicy-cpp installed in the COPR script above (stage A)
 
-  # Enable performance daemons
+  # Try to install COPR-dependent packages (scx-scheds, ananicy-cpp).
+  # These come from COPRs that may not have F44 builds yet.
+  # If the COPR is available, the package installs. If not, the build continues
+  # and the user can install them later via `ujust install-rpm scx-scheds`.
+  - type: script
+    snippets:
+      - |
+        # scx-scheds (sched_ext BPF schedulers) from CachyOS COPR
+        if ls /etc/yum.repos.d/bieszczaders-kernel-cachyos-addons*.repo >/dev/null 2>&1; then
+          echo "CachyOS COPR available - installing scx-scheds ..."
+          rpm-ostree install scx-scheds && echo "  OK: scx-scheds installed" || \
+            echo "  WARN: scx-scheds install failed (package may not exist in COPR yet)"
+        else
+          echo "CachyOS COPR not available - skipping scx-scheds"
+          echo "  Install later with: ujust install-rpm scx-scheds"
+        fi
+        # ananicy-cpp (process priority daemon) from ananicy COPR
+        if ls /etc/yum.repos.d/zeno-ananicy-cpp*.repo >/dev/null 2>&1; then
+          echo "Ananicy COPR available - installing ananicy-cpp ..."
+          rpm-ostree install ananicy-cpp && echo "  OK: ananicy-cpp installed" || \
+            echo "  WARN: ananicy-cpp install failed (package may not exist in COPR yet)"
+        else
+          echo "Ananicy COPR not available - skipping ananicy-cpp"
+          echo "  Install later with: ujust install-rpm ananicy-cpp"
+        fi
+
+  # Enable performance daemons (non-fatal if a package wasn't installed)
   - type: script
     snippets:
       - systemctl enable tuned.service
@@ -169,7 +211,7 @@ modules:
       - systemctl enable irqbalance.service
       - systemctl enable earlyoom.service
       - systemctl enable nohang.service
-      - systemctl enable ananicy-cpp.service
+      - systemctl enable ananicy-cpp.service || true
       - systemctl enable thermald.service || true
       - systemctl mask power-profiles-daemon.service || true
 
@@ -286,14 +328,14 @@ modules:
   # ---------------------------------------------------------------------------
 
   # Gaming support (base layer)
-  # wine/winetricks intentionally NOT installed in the base image — they belong
-  # in Flatpak (Bottles) or Distrobox containers, not the ostree layer.
-  # gamescope + mangohud + gamemode come from Fedora main + negativo17.
   - type: rpm-ostree
     install:
       - gamescope
       - mangoapp
       - goverlay
+      - winetricks
+      - wine
+      - wine-core
 
   # ---------------------------------------------------------------------------
   #  G. KDE Plasma desktop (DIY core - minimal, lean, no PIM daemons)
@@ -318,11 +360,6 @@ modules:
       - sddm
       - sddm-kcm
       - sddm-theme-breeze
-      # plasma-login-manager: F44+ display manager (replaces sddm as the
-      # default DM on Fedora 44+. We install both — sddm for the theme assets
-      # + kcm, plasma-login-manager as the actual DM. ublue check-build.sh
-      # asserts one or the other is present.)
-      - plasma-login-manager
       - kwin
       - kinfocenter
       - kio-fuse
@@ -335,8 +372,9 @@ modules:
       - kvantum
       - kvantum-qt6
       - layer-shell-qt
-      # Plasma accessories (ksysguard retired — plasma-systemmonitor replaces it)
+      # Plasma accessories
       - kcron
+      - ksysguard
       - kfind
       - kmenuedit
       - kwrite
