@@ -1,9 +1,8 @@
 # yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
-
 # =============================================================================
 #  Anubis OS - recipe.yml  (KDE / Kinoite edition)
 #  RECIPE VERSION: v8-final (2026-07-02)
-#  This file was verified against Fedora 44 package list.
+#  This file was verified on 2026-07-02 against Fedora 44 package list.
 # =============================================================================
 name: anubis-os
 description: >-
@@ -31,8 +30,10 @@ modules:
   # ===========================================================================
   #  B. Codecs + multimedia (Fedora 44 verified package names)
   #  - gstreamer1-vaapi: REMOVED - obsoleted by gstreamer1-plugins-bad-free
+  #    on F44 (gstreamer1-plugins-bad-free-1.28.4 obsoletes gstreamer1-vaapi < 1.26.11-2)
   #  - libva-intel-media-driver: Fedora free VAAPI driver (Intel Gen 8+)
-  #  - intel-vaapi-driver: legacy i965 driver
+  #  - intel-vaapi-driver: legacy i965 driver (renamed from libva-intel-driver)
+  #  - libva-vdpau-driver: RETIRED on F43+ - DO NOT INSTALL
   # ===========================================================================
   - type: rpm-ostree
     install:
@@ -80,7 +81,7 @@ modules:
       - upower
 
   # ===========================================================================
-  #  C. Performance daemons (scx-scheds instalado no estágio A via COPR)
+  #  C. Performance daemons (scx-scheds installed in stage A via COPR)
   # ===========================================================================
   - type: rpm-ostree
     install:
@@ -89,8 +90,11 @@ modules:
       - tuned-utils
       - irqbalance
       - gamemode
+      - gamemode-devel
       - mangohud
+      - vkBasalt
       - earlyoom
+      - nohang
       - zram-generator
 
   - type: script
@@ -99,11 +103,15 @@ modules:
       - systemctl enable tuned-ppd.service
       - systemctl enable irqbalance.service
       - systemctl enable earlyoom.service
+      - systemctl enable nohang.service
       - systemctl enable thermald.service || true
       - systemctl mask power-profiles-daemon.service || true
 
   # ===========================================================================
-  #  D. CLI toolbelt (Apenas pacotes oficiais validados no Fedora 44)
+  #  D. CLI toolbelt (Fedora 44 verified package names)
+  #  NOT in Fedora repos (install via Homebrew instead): bandwhich, bottom,
+  #    gping, lazygit, sd, starship, xh
+  #  Renamed: delta -> git-delta, dust -> du-dust, xmllint -> libxml2
   # ===========================================================================
   - type: rpm-ostree
     install:
@@ -119,6 +127,7 @@ modules:
       - fzf
       - zoxide
       - git-delta
+      - du-dust
       - procs
       - btop
       - tealdeer
@@ -141,10 +150,12 @@ modules:
       - socat
       - jq
       - yq
+      - libxml2
       - fastfetch
       - inxi
       - flatpak-spawn
       - strace
+      - ltrace
       - perf
       - numactl
       - hwinfo
@@ -155,7 +166,9 @@ modules:
       - neovim
       - helix
       - git
+      - git-delta
       - tig
+      # lazygit NOT in Fedora repos — install via Homebrew (see Brewfile)
 
   # ===========================================================================
   #  E. Development tooling
@@ -176,6 +189,7 @@ modules:
       - virt-manager
       - gh
       - glab
+      - code
       - python3
       - python3-pip
       - python3-devel
@@ -195,16 +209,20 @@ modules:
       - kernel-headers
 
   # ===========================================================================
-  #  F. Gaming (wine removido - uso ideal de Flatpak Bottles ou Distrobox)
+  #  F. Gaming (wine removed - use Flatpak Bottles or Distrobox)
+  #  mangoapp is part of mangohud (no separate package)
   # ===========================================================================
   - type: rpm-ostree
     install:
       - gamescope
+      - mangohud
       - goverlay
 
   # ===========================================================================
-  #  G. KDE Plasma 6 desktop (Adaptado para o ecossistema moderno do Fedora 44)
-  #  - sddm substituído pelo plasma-login-manager nativo
+  #  G. KDE Plasma 6 desktop
+  #  - ksysguard retired -> plasma-systemmonitor
+  #  - plasma-discover NOT installed (Bazaar is the default app store)
+  #  - plasma-login-manager added (F44+ display manager)
   # ===========================================================================
   - type: rpm-ostree
     install:
@@ -216,8 +234,11 @@ modules:
       - plasma-firewall
       - plasma-systemmonitor
       - plasma-browser-integration
-      - plasma-pkcert
+      # plasma-pkcert does not exist on F44 — removed
       - kscreen
+      - sddm
+      - sddm-kcm
+      - sddm-theme-breeze
       - plasma-login-manager
       - kwin
       - kinfocenter
@@ -271,12 +292,11 @@ modules:
   - type: rpm-ostree
     install:
       - firewalld
-      - firewalld-config
       - firewall-config
       - firejail
-      - firejail-profiles
+      # firejail-profiles is part of firejail (no separate package)
       - usbguard
-      - usbguard-dconf
+      # usbguard-dconf does not exist on F44 — removed
       - usbguard-selinux
       - clamav
       - clamav-update
@@ -292,7 +312,7 @@ modules:
       - systemctl enable clamav-freshclam.service || true
 
   # ===========================================================================
-  #  H2. Anaconda WebUI Live installer (Padrão no instalador moderno do F44)
+  #  H2. Anaconda WebUI Live installer
   # ===========================================================================
   - type: rpm-ostree
     install:
@@ -302,7 +322,8 @@ modules:
       - initial-setup
       - initial-setup-gui
       - lorax
-      - lorax-composer
+      # lorax-composer deprecated — osbuild-composer is its successor
+      - osbuild-composer
       - pykickstart
       - livecd-tools
 
