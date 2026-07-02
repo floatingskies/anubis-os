@@ -1,8 +1,9 @@
 # yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
+
 # =============================================================================
 #  Anubis OS - recipe.yml  (KDE / Kinoite edition)
 #  RECIPE VERSION: v8-final (2026-07-02)
-#  This file was verified on 2026-07-02 against Fedora 44 package list.
+#  This file was verified against Fedora 44 package list.
 # =============================================================================
 name: anubis-os
 description: >-
@@ -30,10 +31,8 @@ modules:
   # ===========================================================================
   #  B. Codecs + multimedia (Fedora 44 verified package names)
   #  - gstreamer1-vaapi: REMOVED - obsoleted by gstreamer1-plugins-bad-free
-  #    on F44 (gstreamer1-plugins-bad-free-1.28.4 obsoletes gstreamer1-vaapi < 1.26.11-2)
   #  - libva-intel-media-driver: Fedora free VAAPI driver (Intel Gen 8+)
-  #  - intel-vaapi-driver: legacy i965 driver (renamed from libva-intel-driver)
-  #  - libva-vdpau-driver: RETIRED on F43+ - DO NOT INSTALL
+  #  - intel-vaapi-driver: legacy i965 driver
   # ===========================================================================
   - type: rpm-ostree
     install:
@@ -81,7 +80,7 @@ modules:
       - upower
 
   # ===========================================================================
-  #  C. Performance daemons (scx-scheds installed in stage A via COPR)
+  #  C. Performance daemons (scx-scheds instalado no estágio A via COPR)
   # ===========================================================================
   - type: rpm-ostree
     install:
@@ -90,7 +89,6 @@ modules:
       - tuned-utils
       - irqbalance
       - gamemode
-      - gamemode-devel
       - mangohud
       - earlyoom
       - zram-generator
@@ -105,7 +103,7 @@ modules:
       - systemctl mask power-profiles-daemon.service || true
 
   # ===========================================================================
-  #  D. CLI toolbelt
+  #  D. CLI toolbelt (Apenas pacotes oficiais validados no Fedora 44)
   # ===========================================================================
   - type: rpm-ostree
     install:
@@ -120,18 +118,11 @@ modules:
       - ripgrep
       - fzf
       - zoxide
-      - delta
-      - dust
+      - git-delta
       - procs
-      - sd
-      - bottom
       - btop
-      - bandwhich
-      - gping
-      - xh
       - tealdeer
       - direnv
-      - starship
       - p7zip
       - p7zip-plugins
       - unrar
@@ -150,12 +141,10 @@ modules:
       - socat
       - jq
       - yq
-      - xmllint
       - fastfetch
       - inxi
       - flatpak-spawn
       - strace
-      - ltrace
       - perf
       - numactl
       - hwinfo
@@ -166,9 +155,7 @@ modules:
       - neovim
       - helix
       - git
-      - git-delta
       - tig
-      - lazygit
 
   # ===========================================================================
   #  E. Development tooling
@@ -189,7 +176,6 @@ modules:
       - virt-manager
       - gh
       - glab
-      - code
       - python3
       - python3-pip
       - python3-devel
@@ -209,7 +195,7 @@ modules:
       - kernel-headers
 
   # ===========================================================================
-  #  F. Gaming (wine removed - use Flatpak Bottles or Distrobox)
+  #  F. Gaming (wine removido - uso ideal de Flatpak Bottles ou Distrobox)
   # ===========================================================================
   - type: rpm-ostree
     install:
@@ -218,10 +204,8 @@ modules:
       - goverlay
 
   # ===========================================================================
-  #  G. KDE Plasma 6 desktop
-  #  - ksysguard retired -> plasma-systemmonitor
-  #  - plasma-discover NOT installed (Bazaar is the default app store)
-  #  - plasma-login-manager added (F44+ display manager)
+  #  G. KDE Plasma 6 desktop (Adaptado para o ecossistema moderno do Fedora 44)
+  #  - sddm substituído pelo plasma-login-manager nativo
   # ===========================================================================
   - type: rpm-ostree
     install:
@@ -235,9 +219,6 @@ modules:
       - plasma-browser-integration
       - plasma-pkcert
       - kscreen
-      - sddm
-      - sddm-kcm
-      - sddm-theme-breeze
       - plasma-login-manager
       - kwin
       - kinfocenter
@@ -312,7 +293,7 @@ modules:
       - systemctl enable clamav-freshclam.service || true
 
   # ===========================================================================
-  #  H2. Anaconda WebUI Live installer
+  #  H2. Anaconda WebUI Live installer (Padrão no instalador moderno do F44)
   # ===========================================================================
   - type: rpm-ostree
     install:
