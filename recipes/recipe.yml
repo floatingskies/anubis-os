@@ -275,7 +275,6 @@ modules:
       - kdialog
       - google-noto-sans-fonts
       - google-noto-sans-cjk-fonts
-      - google-noto-sans-cjk-ttc-fonts
       - google-noto-serif-fonts
       - google-noto-mono-fonts
       - google-noto-emoji-fonts
