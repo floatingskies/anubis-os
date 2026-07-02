@@ -227,11 +227,7 @@ modules:
       - plasma-firewall
       - plasma-systemmonitor
       - plasma-browser-integration
-      # plasma-pkcert does not exist on F44 — removed
       - kscreen
-      - sddm
-      - sddm-kcm
-      - sddm-theme-breeze
       - plasma-login-manager
       - kwin
       - kinfocenter
@@ -273,8 +269,7 @@ modules:
       - fira-code-fonts
       - jetbrains-mono-fonts
       - cascadia-code-fonts
-      - hack-fonts
-      - inter-fonts
+      - rsms-inter-fonts
       - firefox
 
   # ===========================================================================
