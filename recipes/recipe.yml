@@ -235,7 +235,6 @@ modules:
       - kio-extras
       - kde-gtk-config
       - kdegraphics-thumbnailers
-      - kimageformats
       - qt6-qtimageformats
       - qt6-qtwayland
       - kvantum
@@ -260,7 +259,6 @@ modules:
       - filelight
       - ksystemlog
       - kdebugsettings
-      - milou
       - kdialog
       - google-noto-sans-fonts
       - google-noto-serif-fonts
