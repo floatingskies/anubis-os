@@ -1,8 +1,9 @@
 # yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
 # =============================================================================
 #  Anubis OS - recipe.yml  (KDE / Kinoite edition)
-#  RECIPE VERSION: v9-final (2026-07-02)
+#  RECIPE VERSION: v10-final (2026-07-02)
 #  All package names verified against Fedora 44 packages.fedoraproject.org.
+#  Modules consolidated to stay under Docker's 127-layer limit.
 # =============================================================================
 name: anubis-os
 description: >-
@@ -16,8 +17,7 @@ modules:
 
   # ===========================================================================
   #  A. COPR setup (ublue pattern: enable -> install -> disable)
-  #  RPM Fusion is NOT used - ublue uses negativo17 fedora-multimedia (already
-  #  in the kinoite-main base image).
+  #  scx-scheds from CachyOS COPR. RPM Fusion NOT used (negativo17 in base).
   # ===========================================================================
   - type: script
     snippets:
@@ -28,14 +28,36 @@ modules:
         dnf5 -y copr disable bieszczaders/kernel-cachyos-addons
 
   # ===========================================================================
-  #  B. Codecs + multimedia (Fedora 44 verified package names)
-  #  - gstreamer1-vaapi: REMOVED - obsoleted by gstreamer1-plugins-bad-free
+  #  B. ALL RPM packages in a SINGLE module (consolidated to reduce layers)
+  #  Codecs + hw enablement + perf + CLI + dev + gaming + KDE + security +
+  #  Anaconda WebUI — all in one rpm-ostree install transaction.
+  #
+  #  Package names verified against Fedora 44 packages.fedoraproject.org:
+  #  - gstreamer1-vaapi: REMOVED (obsoleted by gstreamer1-plugins-bad-free)
   #  - libva-intel-media-driver: Fedora free VAAPI driver (Intel Gen 8+)
   #  - intel-vaapi-driver: legacy i965 driver (renamed from libva-intel-driver)
-  #  - libva-vdpau-driver: RETIRED on F43+ - DO NOT INSTALL
+  #  - libva-vdpau-driver: RETIRED on F43+
+  #  - kimageformats -> kf6-kimageformats
+  #  - milou -> plasma-milou
+  #  - sddm-theme-breeze -> sddm-breeze
+  #  - hack-fonts -> source-foundry-hack-fonts
+  #  - inter-fonts -> rsms-inter-fonts
+  #  - ksysguard retired -> plasma-systemmonitor
+  #  - nohang removed (no systemd service on F44)
+  #  - wine/winetricks removed (use Flatpak/Distrobox)
+  #  - bandwhich/bottom/gping/lazygit/sd/starship/xh NOT in Fedora (use Homebrew)
+  #  - delta -> git-delta, dust -> du-dust, xmllint -> libxml2
+  #  - firewalld-config removed (use firewall-config)
+  #  - firejail-profiles removed (part of firejail)
+  #  - usbguard-dconf removed (doesn't exist)
+  #  - lorax-composer -> osbuild-composer
+  #  - plasma-pkcert removed (doesn't exist)
+  #  - mangoapp removed (part of mangohud)
+  #  - vkbasalt -> vkBasalt (case-sensitive)
   # ===========================================================================
   - type: rpm-ostree
     install:
+      # --- Codecs + multimedia ---
       - ffmpeg
       - ffmpeg-libs
       - gstreamer1-plugins-base
@@ -54,12 +76,7 @@ modules:
       - lame
       - opus
       - flac
-
-  # ===========================================================================
-  #  Hardware enablement
-  # ===========================================================================
-  - type: rpm-ostree
-    install:
+      # --- Hardware enablement ---
       - fwupd
       - fwupd-efi
       - NetworkManager
@@ -78,13 +95,7 @@ modules:
       - smartmontools
       - udisks2
       - upower
-
-  # ===========================================================================
-  #  C. Performance daemons (scx-scheds installed in stage A via COPR)
-  #  nohang REMOVED - package exists but ships no systemd service on F44
-  # ===========================================================================
-  - type: rpm-ostree
-    install:
+      # --- Performance daemons ---
       - tuned
       - tuned-ppd
       - tuned-utils
@@ -95,26 +106,7 @@ modules:
       - vkBasalt
       - earlyoom
       - zram-generator
-
-  # ALL systemctl calls use || true - BlueBuild runs each snippet separately
-  # and any failure kills the build.
-  - type: script
-    snippets:
-      - systemctl enable tuned.service || true
-      - systemctl enable tuned-ppd.service || true
-      - systemctl enable irqbalance.service || true
-      - systemctl enable earlyoom.service || true
-      - systemctl enable thermald.service || true
-      - systemctl mask power-profiles-daemon.service || true
-
-  # ===========================================================================
-  #  D. CLI toolbelt (Fedora 44 verified package names)
-  #  NOT in Fedora repos (install via Homebrew instead): bandwhich, bottom,
-  #    gping, lazygit, sd, starship, xh
-  #  Renamed: delta -> git-delta, dust -> du-dust, xmllint -> libxml2
-  # ===========================================================================
-  - type: rpm-ostree
-    install:
+      # --- CLI toolbelt ---
       - bash-completion
       - zsh
       - fish
@@ -167,13 +159,7 @@ modules:
       - helix
       - git
       - tig
-      # lazygit NOT in Fedora repos - install via Homebrew (see Brewfile)
-
-  # ===========================================================================
-  #  E. Development tooling
-  # ===========================================================================
-  - type: rpm-ostree
-    install:
+      # --- Dev tooling ---
       - podman
       - podman-compose
       - podman-docker
@@ -205,30 +191,10 @@ modules:
       - clang
       - kernel-devel
       - kernel-headers
-
-  # ===========================================================================
-  #  F. Gaming (wine removed - use Flatpak Bottles or Distrobox)
-  #  mangoapp is part of mangohud (no separate package)
-  # ===========================================================================
-  - type: rpm-ostree
-    install:
+      # --- Gaming ---
       - gamescope
-      - mangohud
       - goverlay
-
-  # ===========================================================================
-  #  G. KDE Plasma 6 desktop (Fedora 44 verified package names)
-  #  - ksysguard retired -> plasma-systemmonitor
-  #  - plasma-discover NOT installed (Bazaar is the default app store)
-  #  - plasma-login-manager added (F44+ display manager)
-  #  - kimageformats -> kf6-kimageformats (Qt6/Plasma 6)
-  #  - milou -> plasma-milou
-  #  - sddm-theme-breeze -> sddm-breeze
-  #  - hack-fonts -> source-foundry-hack-fonts
-  #  - inter-fonts -> rsms-inter-fonts
-  # ===========================================================================
-  - type: rpm-ostree
-    install:
+      # --- KDE Plasma 6 ---
       - plasma-desktop
       - plasma-workspace
       - plasma-workspace-wayland
@@ -275,6 +241,7 @@ modules:
       - kdebugsettings
       - plasma-milou
       - kdialog
+      # --- Fonts ---
       - google-noto-sans-fonts
       - google-noto-serif-fonts
       - google-noto-mono-fonts
@@ -284,13 +251,9 @@ modules:
       - cascadia-code-fonts
       - source-foundry-hack-fonts
       - rsms-inter-fonts
+      # --- Browser ---
       - firefox
-
-  # ===========================================================================
-  #  H. Security
-  # ===========================================================================
-  - type: rpm-ostree
-    install:
+      # --- Security ---
       - firewalld
       - firewall-config
       - firejail
@@ -302,18 +265,7 @@ modules:
       - rkhunter
       - aide
       - polkit
-
-  - type: script
-    snippets:
-      - systemctl enable firewalld.service || true
-      - systemctl enable usbguard.service || true
-      - systemctl enable clamav-freshclam.service || true
-
-  # ===========================================================================
-  #  H2. Anaconda WebUI Live installer
-  # ===========================================================================
-  - type: rpm-ostree
-    install:
+      # --- Anaconda WebUI Live installer ---
       - anaconda-webui
       - anaconda-install-env-deps
       - anaconda-dracut
@@ -325,12 +277,27 @@ modules:
       - livecd-tools
 
   # ===========================================================================
-  #  I. Homebrew
+  #  C. Enable services (all || true — non-fatal if service doesn't exist)
+  # ===========================================================================
+  - type: script
+    snippets:
+      - systemctl enable tuned.service || true
+      - systemctl enable tuned-ppd.service || true
+      - systemctl enable irqbalance.service || true
+      - systemctl enable earlyoom.service || true
+      - systemctl enable thermald.service || true
+      - systemctl mask power-profiles-daemon.service || true
+      - systemctl enable firewalld.service || true
+      - systemctl enable usbguard.service || true
+      - systemctl enable clamav-freshclam.service || true
+
+  # ===========================================================================
+  #  D. Homebrew
   # ===========================================================================
   - type: brew
 
   # ===========================================================================
-  #  J. Pre-baked Flatpaks
+  #  E. Pre-baked Flatpaks
   # ===========================================================================
   - type: default-flatpaks
     configurations:
@@ -352,7 +319,7 @@ modules:
           - com.ranfdev.DistroShelf
 
   # ===========================================================================
-  #  K. Static files
+  #  F. Static files (source: "." = contents of files/ directory)
   # ===========================================================================
   - type: files
     files:
@@ -360,7 +327,7 @@ modules:
         destination: /
 
   # ===========================================================================
-  #  L. Build-time scripts
+  #  G. Build-time scripts (must be in files/scripts/)
   # ===========================================================================
   - type: script
     scripts:
@@ -381,6 +348,6 @@ modules:
       - set-permissions.sh
 
   # ===========================================================================
-  #  M. Signing
+  #  H. Signing
   # ===========================================================================
   - type: signing
