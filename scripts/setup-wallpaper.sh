@@ -99,6 +99,9 @@ wallpaperplugin=org.kde.image
 immutability=1
 plugin=org.kde.plasma.kickoff
 
+[Containments][2][Applets][1][Configuration]
+icon=anubis-logo
+
 [Containments][2][Applets][2]
 immutability=1
 plugin=org.kde.plasma.icontasks

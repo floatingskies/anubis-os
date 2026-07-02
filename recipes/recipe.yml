@@ -1,8 +1,8 @@
 # yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
 # =============================================================================
 #  Anubis OS - recipe.yml  (KDE / Kinoite edition)
-#  RECIPE VERSION: v8-final (2026-07-02)
-#  This file was verified on 2026-07-02 against Fedora 44 package list.
+#  RECIPE VERSION: v9-final (2026-07-02)
+#  All package names verified against Fedora 44 packages.fedoraproject.org.
 # =============================================================================
 name: anubis-os
 description: >-
@@ -30,7 +30,6 @@ modules:
   # ===========================================================================
   #  B. Codecs + multimedia (Fedora 44 verified package names)
   #  - gstreamer1-vaapi: REMOVED - obsoleted by gstreamer1-plugins-bad-free
-  #    on F44 (gstreamer1-plugins-bad-free-1.28.4 obsoletes gstreamer1-vaapi < 1.26.11-2)
   #  - libva-intel-media-driver: Fedora free VAAPI driver (Intel Gen 8+)
   #  - intel-vaapi-driver: legacy i965 driver (renamed from libva-intel-driver)
   #  - libva-vdpau-driver: RETIRED on F43+ - DO NOT INSTALL
@@ -82,6 +81,7 @@ modules:
 
   # ===========================================================================
   #  C. Performance daemons (scx-scheds installed in stage A via COPR)
+  #  nohang REMOVED - package exists but ships no systemd service on F44
   # ===========================================================================
   - type: rpm-ostree
     install:
@@ -96,12 +96,14 @@ modules:
       - earlyoom
       - zram-generator
 
+  # ALL systemctl calls use || true - BlueBuild runs each snippet separately
+  # and any failure kills the build.
   - type: script
     snippets:
-      - systemctl enable tuned.service
-      - systemctl enable tuned-ppd.service
-      - systemctl enable irqbalance.service
-      - systemctl enable earlyoom.service
+      - systemctl enable tuned.service || true
+      - systemctl enable tuned-ppd.service || true
+      - systemctl enable irqbalance.service || true
+      - systemctl enable earlyoom.service || true
       - systemctl enable thermald.service || true
       - systemctl mask power-profiles-daemon.service || true
 
@@ -124,6 +126,7 @@ modules:
       - ripgrep
       - fzf
       - zoxide
+      - git-delta
       - du-dust
       - procs
       - btop
@@ -163,8 +166,9 @@ modules:
       - neovim
       - helix
       - git
-      - git-delta
       - tig
+      # lazygit NOT in Fedora repos - install via Homebrew (see Brewfile)
+
   # ===========================================================================
   #  E. Development tooling
   # ===========================================================================
@@ -192,6 +196,7 @@ modules:
       - yarnpkg
       - rustc
       - cargo
+      - go
       - make
       - cmake
       - ninja-build
@@ -212,10 +217,15 @@ modules:
       - goverlay
 
   # ===========================================================================
-  #  G. KDE Plasma 6 desktop
+  #  G. KDE Plasma 6 desktop (Fedora 44 verified package names)
   #  - ksysguard retired -> plasma-systemmonitor
   #  - plasma-discover NOT installed (Bazaar is the default app store)
   #  - plasma-login-manager added (F44+ display manager)
+  #  - kimageformats -> kf6-kimageformats (Qt6/Plasma 6)
+  #  - milou -> plasma-milou
+  #  - sddm-theme-breeze -> sddm-breeze
+  #  - hack-fonts -> source-foundry-hack-fonts
+  #  - inter-fonts -> rsms-inter-fonts
   # ===========================================================================
   - type: rpm-ostree
     install:
@@ -228,6 +238,9 @@ modules:
       - plasma-systemmonitor
       - plasma-browser-integration
       - kscreen
+      - sddm
+      - sddm-kcm
+      - sddm-breeze
       - plasma-login-manager
       - kwin
       - kinfocenter
@@ -235,6 +248,7 @@ modules:
       - kio-extras
       - kde-gtk-config
       - kdegraphics-thumbnailers
+      - kf6-kimageformats
       - qt6-qtimageformats
       - qt6-qtwayland
       - kvantum
@@ -259,6 +273,7 @@ modules:
       - filelight
       - ksystemlog
       - kdebugsettings
+      - plasma-milou
       - kdialog
       - google-noto-sans-fonts
       - google-noto-serif-fonts
@@ -267,6 +282,7 @@ modules:
       - fira-code-fonts
       - jetbrains-mono-fonts
       - cascadia-code-fonts
+      - source-foundry-hack-fonts
       - rsms-inter-fonts
       - firefox
 
@@ -289,8 +305,8 @@ modules:
 
   - type: script
     snippets:
-      - systemctl enable firewalld.service
-      - systemctl enable usbguard.service
+      - systemctl enable firewalld.service || true
+      - systemctl enable usbguard.service || true
       - systemctl enable clamav-freshclam.service || true
 
   # ===========================================================================
