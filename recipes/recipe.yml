@@ -200,7 +200,6 @@ modules:
   - type: rpm-ostree
     install:
       - gamescope
-      - mangoapp
       - goverlay
 
   # ===========================================================================
