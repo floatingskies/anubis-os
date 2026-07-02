@@ -1,37 +1,115 @@
 # yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
 # =============================================================================
 #  Anubis OS - recipe.yml  (KDE / Kinoite edition)
+# -----------------------------------------------------------------------------
+#  CachyOS-flavoured, security-minded, gaming-ready immutable Fedora with a
+#  DIY KDE Plasma desktop. Targets <= 1.5 GB RAM at idle on a fresh boot.
+#
+#  Design pillars
+#  --------------
+#    1. Performance     - tuned + scx-scheds (sched_ext) + aggressive sysctl,
+#                         zram, mq-deadline/none IO schedulers, earlyoom/nohang.
+#    2. DIY / minimal   - KDE Plasma core app set, no bloat. Every extra app
+#                         is an opt-in `ujust` command or a Flatpak.
+#    3. CLI-first       - modern Unix toolbelt (eza, bat, fd, rg, fzf, zoxide,
+#                         delta, btop, fastfetch, starship, oh-my-bash).
+#    4. Brew layer      - Homebrew for userland CLI/GUI apps, fully upgradeable
+#                         in-place (no reinstall needed).
+#    5. Ujust           - every post-install action is a `ujust <recipe>`.
+#    6. KDE defaults    - no GNOME extensions. Stock Plasma 6 with a curated
+#                         look (dark theme, JetBrains Mono, Anubis wallpaper,
+#                         Anubis logo on SDDM + lockscreen + KInfoCenter).
+#    7. Lean idle       - Baloo disabled, Akonadi masked, KWin effects trimmed,
+#                         no PIM daemons. Target: 1.3-1.5 GB RAM at idle.
+#    8. RPM-only base   - broad x86_64 hardware support (1st-gen Intel Core ->
+#                         current, all AMD64). Stock Fedora kernel - rides
+#                         Fedora's regular cadence.
 # =============================================================================
+
+# --- Image identity ---------------------------------------------------------
 name: anubis-os
 description: >-
   CachyOS-flavoured, security-focused, gaming-ready immutable Fedora with a
   DIY KDE Plasma 6 desktop, modern CLI toolbelt, Homebrew layer, ujust
   management, and <=1.5 GB idle RAM. RPM-only base, broad x86_64 support.
+
+# ublue kinoite-main = KDE Plasma 6 ostree base. We replace the stock branding
+# and tune the system on top of it.
 base-image: ghcr.io/ublue-os/kinoite-main
 image-version: "44"
 
+# =============================================================================
+#  MODULE PIPELINE
+# =============================================================================
+#  Stages are ordered for correctness:
+#    A. Repo hygiene            (kill broken repos, add COPRs)
+#    B. Base RPM layer          (codecs, hw enablement, perf baseline)
+#    C. Performance tuning      (sysctl, tuned, sched_ext, IO, zram, earlyoom)
+#    D. CLI toolbelt            (modern Unix tools)
+#    E. Development tooling     (containers, buildah, gh)
+#    F. Gaming                  (gamemode, mangohud, gamescope, vkbasalt)
+#    G. KDE Plasma desktop      (apps + plasma-workspace)
+#    H. Security                (firewalld, firejail, usbguard, clamav)
+#    H2. Anaconda WebUI Live    (browser-based ISO installer)
+#    I. Brew layer              (Homebrew)
+#    J. Flatpaks                (pre-baked offline install)
+#    K. Static files            (files/ tree -> /)
+#    L. Build-time scripts      (branding, plymouth, performance, ujust, etc.)
+#    M. Signing                 (cosign)
+# =============================================================================
+
 modules:
 
-  # ===========================================================================
-  #  A. COPR setup (ublue pattern: enable -> install -> disable)
-  #  RPM Fusion is NOT used - ublue uses negativo17 fedora-multimedia (already
-  #  in the kinoite-main base image).
-  # ===========================================================================
+  # ---------------------------------------------------------------------------
+  #  A. Repo hygiene
+  # ---------------------------------------------------------------------------
+
+  # Remove broken negativo17 repo + clean dnf cache
+  - type: script
+    snippets:
+      - grep -rl 'negativo17.org' /etc/yum.repos.d/ 2>/dev/null | xargs -r rm -f
+      - dnf clean all
+
+  # Add COPR repos (Terra codecs, CachyOS sched_ext, ananicy-cpp).
+  # RPM Fusion is ALREADY enabled in the ublue kinoite-main base image -
+  # no need to set it up here.
+  #
+  # COPRs may not have Fedora 44 builds yet (F44 is pre-release), so we
+  # download each .repo file with curl and skip any that 404.
   - type: script
     snippets:
       - |
-        set -ouex pipefail
-        dnf5 -y copr enable bieszczaders/kernel-cachyos-addons
-        dnf5 -y install scx-scheds
-        dnf5 -y copr disable bieszczaders/kernel-cachyos-addons
+        OS_VER=$(grep '^VERSION_ID=' /etc/os-release | cut -d= -f2 | tr -d '"')
+        echo "Fedora version: $OS_VER"
+        try_copr() {
+          local name="$1" url="$2"
+          echo "Trying COPR: $name"
+          if curl -fsSL "$url" -o "/etc/yum.repos.d/${name}.repo" 2>/dev/null; then
+            echo "  OK: downloaded"
+          else
+            echo "  SKIP: 404 or download failed (COPR may not have F${OS_VER} builds yet)"
+            rm -f "/etc/yum.repos.d/${name}.repo"
+          fi
+        }
+        # Terra - modern codec set (HEVC, AV1, MPEG-2, AC3, AAC-LC).
+        # Optional: RPM Fusion (already in base image) provides ffmpeg + codecs.
+        try_copr "terra-terra" \
+          "https://copr.fedorainfracloud.org/coprs/terra/terra/repo/fedora-${OS_VER}/terra-terra-fedora-${OS_VER}.repo"
+        # CachyOS kernel addons - sched_ext schedulers (scx_lavd, scx_rustland,
+        # scx_bpfland). Userspace BPF scheduler binaries on stock kernel >= 6.12.
+        try_copr "bieszczaders-kernel-cachyos-addons" \
+          "https://copr.fedorainfracloud.org/coprs/bieszczaders/kernel-cachyos-addons/repo/fedora-${OS_VER}/bieszczaders-kernel-cachyos-addons-fedora-${OS_VER}.repo"
+        # Ananicy-cpp - process priority daemon.
+        try_copr "zeno-ananicy-cpp" \
+          "https://copr.fedorainfracloud.org/coprs/zeno/ananicy-cpp/repo/fedora-${OS_VER}/zeno-ananicy-cpp-fedora-${OS_VER}.repo"
+        echo "COPR repo setup complete."
 
-  # ===========================================================================
-  #  B. Codecs + multimedia (Fedora 44 verified package names)
-  #  - gstreamer1-vaapi: exists on F44 (1.26.10-2.fc44)
-  #  - libva-intel-media-driver: Fedora free VAAPI driver (Intel Gen 8+)
-  #  - intel-vaapi-driver: legacy i965 driver (renamed from libva-intel-driver)
-  #  - libva-vdpau-driver: RETIRED on F43+ - DO NOT INSTALL
-  # ===========================================================================
+  # ---------------------------------------------------------------------------
+  #  B. Base RPM layer - codecs, hw enablement, perf baseline
+  # ---------------------------------------------------------------------------
+
+  # Codecs + multimedia (Fedora stock + RPM Fusion)
+  # ffmpeg + lame + gstreamer codecs all install fine on F44.
   - type: rpm-ostree
     install:
       - ffmpeg
@@ -43,8 +121,6 @@ modules:
       - gstreamer1-vaapi
       - gstreamer1-libav
       - libva
-      - libva-intel-media-driver
-      - intel-vaapi-driver
       - pipewire
       - pipewire-alsa
       - pipewire-pulseaudio
@@ -54,9 +130,21 @@ modules:
       - opus
       - flac
 
-  # ===========================================================================
-  #  Hardware enablement
-  # ===========================================================================
+  # VA-API hardware video drivers (Intel iGPU + VDPAU shim).
+  # These may not exist on Fedora 44 pre-release — install resiliently.
+  - type: script
+    snippets:
+      - |
+        for pkg in intel-media-driver libva-intel-driver libva-vdpau-driver; do
+          if dnf repoquery "$pkg" 2>/dev/null | grep -q "$pkg"; then
+            echo "Installing $pkg ..."
+            rpm-ostree install "$pkg" && echo "  OK: $pkg" || echo "  WARN: $pkg failed"
+          else
+            echo "SKIP: $pkg not in any repo (F44 pre-release)"
+          fi
+        done
+
+  # Hardware enablement
   - type: rpm-ostree
     install:
       - fwupd
@@ -78,9 +166,11 @@ modules:
       - udisks2
       - upower
 
-  # ===========================================================================
-  #  C. Performance daemons (scx-scheds installed in stage A via COPR)
-  # ===========================================================================
+  # ---------------------------------------------------------------------------
+  #  C. Performance tuning - CachyOS/Arch grade on stock kernel
+  # ---------------------------------------------------------------------------
+
+  # Performance daemons + schedulers (from Fedora + RPM Fusion repos)
   - type: rpm-ostree
     install:
       - tuned
@@ -95,6 +185,33 @@ modules:
       - nohang
       - zram-generator
 
+  # Try to install COPR-dependent packages (scx-scheds, ananicy-cpp).
+  # These come from COPRs that may not have F44 builds yet.
+  # If the COPR is available, the package installs. If not, the build continues
+  # and the user can install them later via `ujust install-rpm scx-scheds`.
+  - type: script
+    snippets:
+      - |
+        # scx-scheds (sched_ext BPF schedulers) from CachyOS COPR
+        if ls /etc/yum.repos.d/bieszczaders-kernel-cachyos-addons*.repo >/dev/null 2>&1; then
+          echo "CachyOS COPR available - installing scx-scheds ..."
+          rpm-ostree install scx-scheds && echo "  OK: scx-scheds installed" || \
+            echo "  WARN: scx-scheds install failed (package may not exist in COPR yet)"
+        else
+          echo "CachyOS COPR not available - skipping scx-scheds"
+          echo "  Install later with: ujust install-rpm scx-scheds"
+        fi
+        # ananicy-cpp (process priority daemon) from ananicy COPR
+        if ls /etc/yum.repos.d/zeno-ananicy-cpp*.repo >/dev/null 2>&1; then
+          echo "Ananicy COPR available - installing ananicy-cpp ..."
+          rpm-ostree install ananicy-cpp && echo "  OK: ananicy-cpp installed" || \
+            echo "  WARN: ananicy-cpp install failed (package may not exist in COPR yet)"
+        else
+          echo "Ananicy COPR not available - skipping ananicy-cpp"
+          echo "  Install later with: ujust install-rpm ananicy-cpp"
+        fi
+
+  # Enable performance daemons (non-fatal if a package wasn't installed)
   - type: script
     snippets:
       - systemctl enable tuned.service
@@ -102,12 +219,15 @@ modules:
       - systemctl enable irqbalance.service
       - systemctl enable earlyoom.service
       - systemctl enable nohang.service
+      - systemctl enable ananicy-cpp.service || true
       - systemctl enable thermald.service || true
       - systemctl mask power-profiles-daemon.service || true
 
-  # ===========================================================================
-  #  D. CLI toolbelt
-  # ===========================================================================
+  # ---------------------------------------------------------------------------
+  #  D. CLI toolbelt - modern Unix tools
+  # ---------------------------------------------------------------------------
+
+  # Modern CLI toolbelt
   - type: rpm-ostree
     install:
       - bash-completion
@@ -171,9 +291,11 @@ modules:
       - tig
       - lazygit
 
-  # ===========================================================================
+  # ---------------------------------------------------------------------------
   #  E. Development tooling
-  # ===========================================================================
+  # ---------------------------------------------------------------------------
+
+  # Container + dev tooling
   - type: rpm-ostree
     install:
       - podman
@@ -209,28 +331,35 @@ modules:
       - kernel-devel
       - kernel-headers
 
-  # ===========================================================================
-  #  F. Gaming (wine removed - use Flatpak Bottles or Distrobox)
-  # ===========================================================================
+  # ---------------------------------------------------------------------------
+  #  F. Gaming (rpm-only base - Steam/Lutris stay Flatpak, see J)
+  # ---------------------------------------------------------------------------
+
+  # Gaming support (base layer)
   - type: rpm-ostree
     install:
       - gamescope
       - mangoapp
       - goverlay
+      - winetricks
+      - wine
+      - wine-core
 
-  # ===========================================================================
-  #  G. KDE Plasma 6 desktop
-  #  - ksysguard retired -> plasma-systemmonitor
-  #  - plasma-discover NOT installed (Bazaar is the default app store)
-  #  - plasma-login-manager added (F44+ display manager)
-  # ===========================================================================
+  # ---------------------------------------------------------------------------
+  #  G. KDE Plasma desktop (DIY core - minimal, lean, no PIM daemons)
+  # ---------------------------------------------------------------------------
+
+  # KDE Plasma 6 core
   - type: rpm-ostree
     install:
+      # Plasma shell
       - plasma-desktop
       - plasma-workspace
       - plasma-workspace-wayland
       - plasma-nm
       - plasma-pa
+      # NOTE: plasma-discover + plasma-discover-notifier intentionally NOT
+      # installed. The default app store is Bazaar (Flatpak) - see stage J.
       - plasma-firewall
       - plasma-systemmonitor
       - plasma-browser-integration
@@ -239,7 +368,6 @@ modules:
       - sddm
       - sddm-kcm
       - sddm-theme-breeze
-      - plasma-login-manager
       - kwin
       - kinfocenter
       - kio-fuse
@@ -252,7 +380,9 @@ modules:
       - kvantum
       - kvantum-qt6
       - layer-shell-qt
+      # Plasma accessories
       - kcron
+      - ksysguard
       - kfind
       - kmenuedit
       - kwrite
@@ -273,6 +403,7 @@ modules:
       - kdebugsettings
       - milou
       - kdialog
+      # Fonts
       - google-noto-sans-fonts
       - google-noto-sans-cjk-fonts
       - google-noto-sans-cjk-ttc-fonts
@@ -284,11 +415,14 @@ modules:
       - cascadia-code-fonts
       - hack-fonts
       - inter-fonts
+      # Browser
       - firefox
 
-  # ===========================================================================
+  # ---------------------------------------------------------------------------
   #  H. Security
-  # ===========================================================================
+  # ---------------------------------------------------------------------------
+
+  # User security
   - type: rpm-ostree
     install:
       - firewalld
@@ -306,84 +440,118 @@ modules:
       - aide
       - polkit
 
+  # Enable security services
   - type: script
     snippets:
       - systemctl enable firewalld.service
       - systemctl enable usbguard.service
       - systemctl enable clamav-freshclam.service || true
 
-  # ===========================================================================
-  #  H2. Anaconda WebUI Live installer
-  # ===========================================================================
+  # ---------------------------------------------------------------------------
+  #  H2. Anaconda WebUI Live - modern browser-based installer for the ISO
+  #      The ISO boots into a Plasma session and presents an "Install Anubis"
+  #      icon; clicking it launches `anaconda-webui` which opens a localhost
+  #      web installer the user interacts with via Firefox. The same RPMs
+  #      also enable `initial-setup` for first-login user creation.
+  #      These packages are installed at image-build time so the ISO does NOT
+  #      need to fetch them from the network at install time.
+  # ---------------------------------------------------------------------------
+
+  # Anaconda WebUI Live installer
   - type: rpm-ostree
     install:
-      - anaconda-webui
-      - anaconda-install-env-deps
-      - anaconda-dracut
-      - initial-setup
-      - initial-setup-gui
-      - lorax
-      - lorax-composer
-      - pykickstart
-      - livecd-tools
+      - anaconda-webui             # WebUI installer frontend
+      - anaconda-install-env-deps  # runtime deps for the install environment
+      - anaconda-dracut            # dracut module to inject installer into initrd
+      - initial-setup              # first-login user/password setup
+      - initial-setup-gui          # GUI variant for initial-setup
+      - lorax                      # ISO authoring tools (used by bluebuild generate-iso)
+      - lorax-composer             # composer backend
+      - pykickstart                # kickstart parser (for any custom ks files)
+      - livecd-tools               # live image creation helpers
 
-  # ===========================================================================
-  #  I. Homebrew
-  # ===========================================================================
+  # ---------------------------------------------------------------------------
+  #  I. Brew layer (Homebrew - apps upgradeable in-place, no reinstall)
+  # ---------------------------------------------------------------------------
+
+  # Homebrew layer
   - type: brew
 
-  # ===========================================================================
-  #  J. Pre-baked Flatpaks
-  # ===========================================================================
+  # ---------------------------------------------------------------------------
+  #  J. Pre-baked Flatpaks (offline install on the ISO)
+  # ---------------------------------------------------------------------------
+
+  # Pre-baked Flatpaks
   - type: default-flatpaks
     configurations:
       - scope: system
         install:
+          # Gaming
           - com.valvesoftware.Steam
           - com.valvesoftware.Steam.Utility.MangoHud
           - net.lutris.Lutris
           - org.libretro.RetroArch
           - com.usebottles.bottles
+          # Productivity
           - com.visualstudio.code
           - org.libreoffice.LibreOffice
           - org.kde.kdenlive
           - io.github.kolunmi.Bazaar
           - io.github.getnf.embellish
+          # Creative
           - org.gimp.GIMP
           - org.inkscape.Inkscape
+          # System
           - net.nokyan.Resources
           - com.ranfdev.DistroShelf
 
-  # ===========================================================================
-  #  K. Static files
-  # ===========================================================================
+  # ---------------------------------------------------------------------------
+  #  K. Static files (files/ tree -> /)
+  # ---------------------------------------------------------------------------
+
+  # Static system files
   - type: files
     files:
       - source: files
         destination: /
 
-  # ===========================================================================
-  #  L. Build-time scripts
-  # ===========================================================================
+  # ---------------------------------------------------------------------------
+  #  L. Build-time scripts (run during image build, NOT at first boot)
+  # ---------------------------------------------------------------------------
+
+  # Build-time setup scripts
   - type: script
     scripts:
+      # 1. Branding
       - setup-os-release.sh
       - setup-hostname.sh
       - setup-logo.sh
+      # 2. Boot visual
       - setup-plymouth.sh
+      # 3. Desktop - KDE wallpapers + Plasma defaults + Bazaar as default app store
       - setup-wallpaper.sh
       - setup-kde-defaults.sh
       - setup-bazaar-default.sh
+      # 4. Performance - tuned, sysctl, udev, sched_ext, + KDE RAM savings
       - setup-performance.sh
+      # 5. CLI shell - oh-my-bash, starship, fastfetch config in /etc/skel
       - setup-ohmybash.sh
+      # 6. Ujust - install custom just recipes
       - setup-ujust.sh
+      # 7. Brew - seed the user Brewfile
       - setup-brew.sh
+      # 8. First-boot wiring
       - setup-first-boot.sh
+      # 9. Enable the first-boot units
       - enable-first-boot-units.sh
+      # 10. Boot verification - Plymouth/wallpaper/tuned/scx enforced on EVERY boot
       - setup-boot-verify.sh
+      # 11. Permissions - set modes/contexts on everything shipped
       - set-permissions.sh
 
-  # ===========================================================================
+  # ---------------------------------------------------------------------------
   #  M. Signing
-  # ===========================================================================
+  # ---------------------------------------------------------------------------
+
+  # Sign the image with cosign
   - type: signing
