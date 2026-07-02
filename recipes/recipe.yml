@@ -92,9 +92,7 @@ modules:
       - gamemode
       - gamemode-devel
       - mangohud
-      - vkbasalt
       - earlyoom
-      - nohang
       - zram-generator
 
   - type: script
@@ -103,7 +101,6 @@ modules:
       - systemctl enable tuned-ppd.service
       - systemctl enable irqbalance.service
       - systemctl enable earlyoom.service
-      - systemctl enable nohang.service
       - systemctl enable thermald.service || true
       - systemctl mask power-profiles-daemon.service || true
 
