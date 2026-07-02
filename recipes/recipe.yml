@@ -1,9 +1,9 @@
 # yaml-language-server: $schema=https://schema.blue-build.org/recipe-v1.json
 # =============================================================================
 #  Anubis OS - recipe.yml  (KDE / Kinoite edition)
-#  RECIPE VERSION: v10-final (2026-07-02)
+#  RECIPE VERSION: v11-final (2026-07-02)
 #  All package names verified against Fedora 44 packages.fedoraproject.org.
-#  Modules consolidated to stay under Docker's 127-layer limit.
+#  Modules minimized to 6 total to stay under Docker's 127-layer limit.
 # =============================================================================
 name: anubis-os
 description: >-
@@ -16,44 +16,10 @@ image-version: "44"
 modules:
 
   # ===========================================================================
-  #  A. COPR setup (ublue pattern: enable -> install -> disable)
-  #  scx-scheds from CachyOS COPR. RPM Fusion NOT used (negativo17 in base).
-  # ===========================================================================
-  - type: script
-    snippets:
-      - |
-        set -ouex pipefail
-        dnf5 -y copr enable bieszczaders/kernel-cachyos-addons
-        dnf5 -y install scx-scheds
-        dnf5 -y copr disable bieszczaders/kernel-cachyos-addons
-
-  # ===========================================================================
-  #  B. ALL RPM packages in a SINGLE module (consolidated to reduce layers)
-  #  Codecs + hw enablement + perf + CLI + dev + gaming + KDE + security +
-  #  Anaconda WebUI — all in one rpm-ostree install transaction.
+  #  1. ALL RPM packages in a SINGLE module (minimizes Docker layers)
+  #  scx-scheds is installed separately in the master script (stage 5) via COPR.
   #
-  #  Package names verified against Fedora 44 packages.fedoraproject.org:
-  #  - gstreamer1-vaapi: REMOVED (obsoleted by gstreamer1-plugins-bad-free)
-  #  - libva-intel-media-driver: Fedora free VAAPI driver (Intel Gen 8+)
-  #  - intel-vaapi-driver: legacy i965 driver (renamed from libva-intel-driver)
-  #  - libva-vdpau-driver: RETIRED on F43+
-  #  - kimageformats -> kf6-kimageformats
-  #  - milou -> plasma-milou
-  #  - sddm-theme-breeze -> sddm-breeze
-  #  - hack-fonts -> source-foundry-hack-fonts
-  #  - inter-fonts -> rsms-inter-fonts
-  #  - ksysguard retired -> plasma-systemmonitor
-  #  - nohang removed (no systemd service on F44)
-  #  - wine/winetricks removed (use Flatpak/Distrobox)
-  #  - bandwhich/bottom/gping/lazygit/sd/starship/xh NOT in Fedora (use Homebrew)
-  #  - delta -> git-delta, dust -> du-dust, xmllint -> libxml2
-  #  - firewalld-config removed (use firewall-config)
-  #  - firejail-profiles removed (part of firejail)
-  #  - usbguard-dconf removed (doesn't exist)
-  #  - lorax-composer -> osbuild-composer
-  #  - plasma-pkcert removed (doesn't exist)
-  #  - mangoapp removed (part of mangohud)
-  #  - vkbasalt -> vkBasalt (case-sensitive)
+  #  Package names verified against Fedora 44 packages.fedoraproject.org.
   # ===========================================================================
   - type: rpm-ostree
     install:
@@ -277,27 +243,12 @@ modules:
       - livecd-tools
 
   # ===========================================================================
-  #  C. Enable services (all || true — non-fatal if service doesn't exist)
-  # ===========================================================================
-  - type: script
-    snippets:
-      - systemctl enable tuned.service || true
-      - systemctl enable tuned-ppd.service || true
-      - systemctl enable irqbalance.service || true
-      - systemctl enable earlyoom.service || true
-      - systemctl enable thermald.service || true
-      - systemctl mask power-profiles-daemon.service || true
-      - systemctl enable firewalld.service || true
-      - systemctl enable usbguard.service || true
-      - systemctl enable clamav-freshclam.service || true
-
-  # ===========================================================================
-  #  D. Homebrew
+  #  2. Homebrew
   # ===========================================================================
   - type: brew
 
   # ===========================================================================
-  #  E. Pre-baked Flatpaks
+  #  3. Pre-baked Flatpaks
   # ===========================================================================
   - type: default-flatpaks
     configurations:
@@ -319,7 +270,7 @@ modules:
           - com.ranfdev.DistroShelf
 
   # ===========================================================================
-  #  F. Static files (source: "." = contents of files/ directory)
+  #  4. Static files (source: "." = contents of files/ directory)
   # ===========================================================================
   - type: files
     files:
@@ -327,27 +278,13 @@ modules:
         destination: /
 
   # ===========================================================================
-  #  G. Build-time scripts (must be in files/scripts/)
+  #  5. Master build script (1 Docker layer for COPR + services + 15 scripts)
   # ===========================================================================
   - type: script
     scripts:
-      - setup-os-release.sh
-      - setup-hostname.sh
-      - setup-logo.sh
-      - setup-plymouth.sh
-      - setup-wallpaper.sh
-      - setup-kde-defaults.sh
-      - setup-bazaar-default.sh
-      - setup-performance.sh
-      - setup-ohmybash.sh
-      - setup-ujust.sh
-      - setup-brew.sh
-      - setup-first-boot.sh
-      - enable-first-boot-units.sh
-      - setup-boot-verify.sh
-      - set-permissions.sh
+      - anubis-build-all.sh
 
   # ===========================================================================
-  #  H. Signing
+  #  6. Signing
   # ===========================================================================
   - type: signing
