@@ -77,17 +77,23 @@ if [[ -d "$ANUBIS_THEME_DIR" ]]; then
     LOG "Patched SDDM anubis theme logo."
 fi
 
-# --- 4. KInfoCenter "About this System" page -------------------------------
-# KInfoCenter reads LOGO= from /etc/os-release (set by setup-os-release.sh)
-# and looks up the icon via the XDG icon theme. Make sure anubis-logo is
-# discoverable as an icon name.
-LOG "Installing anubis-logo as a discoverable icon ..."
+# --- 4. KInfoCenter + Kickoff (start menu) + icon theme ---------------------
+# Install the Anubis logo under multiple icon names so it's picked up by:
+#   - anubis-logo       (KInfoCenter "About" page, via LOGO= in os-release)
+#   - start-here-kde    (Kickoff / Application Menu button — THE START MENU)
+#   - start-here-fedora (Fedora-branded Kickoff variant)
+#   - start-here        (generic distro-agnostic start menu icon)
+#   - fedora-logo-icon  (legacy Fedora icon name some themes use)
+LOG "Installing Anubis logo as start-here-kde (Kickoff) + icon theme ..."
+ICON_NAMES="anubis-logo start-here-kde start-here-fedora start-here fedora-logo-icon"
 for size in 16 22 32 48 64 96 128 256; do
-    install -Dm644 "$LOGO_SRC" "/usr/share/icons/hicolor/${size}x${size}/apps/anubis-logo.png"
+    for name in $ICON_NAMES; do
+        install -Dm644 "$LOGO_SRC" "/usr/share/icons/hicolor/${size}x${size}/apps/${name}.png"
+    done
 done
-# Scalable SVG alias (use the PNG wrapped in SVG so legacy SVG-only lookups
-# still resolve).
-cat > /usr/share/icons/hicolor/scalable/apps/anubis-logo.svg <<'SVG'
+# Scalable SVG aliases for each icon name (PNG wrapped in SVG).
+for name in $ICON_NAMES; do
+    cat > "/usr/share/icons/hicolor/scalable/apps/${name}.svg" <<SVG
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
      width="256" height="256" viewBox="0 0 256 256">
@@ -95,8 +101,9 @@ cat > /usr/share/icons/hicolor/scalable/apps/anubis-logo.svg <<'SVG'
          x="0" y="0" width="256" height="256"/>
 </svg>
 SVG
+done
 
-# Refresh the icon cache if gtk-update-icon-cache is available.
+# Refresh the icon cache so Kickoff picks up the new start-here-kde icon.
 if command -v gtk-update-icon-cache &>/dev/null; then
     gtk-update-icon-cache -f /usr/share/icons/hicolor 2>/dev/null || true
 fi
