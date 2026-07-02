@@ -31,7 +31,7 @@ The whole thing is built around one idea. You install once. After that, every up
 
 | | |
 |:---|:---|
-| **Performance** | tuned + sched_ext with scx_rustland, BBR + fq networking, low latency CFS, zram at 50 percent of RAM, mq-deadline and none IO schedulers, earlyoom, nohang, ananicy-cpp |
+| **Performance** | tuned + sched_ext with scx_rustland, BBR + fq networking, low latency CFS, zram at 50 percent of RAM, mq-deadline and none IO schedulers, earlyoom,, ananicy-cpp |
 | **Lean idle** | Baloo disabled, Akonadi masked, KWin effects trimmed, KDE Connect and KWallet autostart off, PackageKit auto refresh masked, plasma-discover not installed |
 | **DIY desktop** | KDE Plasma 6 with just the core apps: Dolphin, Konsole, Kate, Okular, Gwenview, Spectacle, KCalc, KRDC, KInfoCenter. Everything else is a `ujust` command or a Flatpak |
 | **CLI first** | eza, bat, fd, ripgrep, fzf, zoxide, delta, btop, fastfetch, starship, oh-my-bash, tmux, and 40 more modern Unix tools |
@@ -162,7 +162,7 @@ zram is configured at 50 percent of RAM, zstd compressed, swap priority 100. No 
 
 sched_ext is the Linux kernel's eBPF based extensible scheduler framework. Fedora ships it enabled by default on kernel 6.12 and newer. Anubis installs scx-scheds from the bieszczaders COPR and defaults to `scx_rustland`, the same scheduler CachyOS ships for desktop interactivity. Switch schedulers at runtime with `ujust scheduler <name>`, no reboot. The options are rustland, lavd, bpfland, flash, pair, qmap, and eevdf (which disables sched_ext entirely and falls back to the stock kernel CFS).
 
-earlyoom kills misbehaving apps before the kernel OOM killer fires, which is slow and tends to kill the wrong process. nohang is a userspace OOM avoidance daemon that warns before memory runs out. ananicy-cpp is a process priority daemon that automatically renices known background apps like indexers and builds so the foreground stays snappy.
+earlyoom kills misbehaving apps before the kernel OOM killer fires, which is slow and tends to kill the wrong process. is a userspace OOM avoidance daemon that warns before memory runs out. ananicy-cpp is a process priority daemon that automatically renices known background apps like indexers and builds so the foreground stays snappy.
 
 ---
 
