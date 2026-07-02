@@ -94,7 +94,6 @@ modules:
       - mangohud
       - vkBasalt
       - earlyoom
-      - nohang
       - zram-generator
 
   - type: script
@@ -168,8 +167,6 @@ modules:
       - git
       - git-delta
       - tig
-      # lazygit NOT in Fedora repos — install via Homebrew (see Brewfile)
-
   # ===========================================================================
   #  E. Development tooling
   # ===========================================================================
@@ -274,7 +271,6 @@ modules:
       - milou
       - kdialog
       - google-noto-sans-fonts
-      - google-noto-sans-cjk-fonts
       - google-noto-serif-fonts
       - google-noto-mono-fonts
       - google-noto-emoji-fonts
@@ -293,9 +289,7 @@ modules:
       - firewalld
       - firewall-config
       - firejail
-      # firejail-profiles is part of firejail (no separate package)
       - usbguard
-      # usbguard-dconf does not exist on F44 — removed
       - usbguard-selinux
       - clamav
       - clamav-update
@@ -321,7 +315,6 @@ modules:
       - initial-setup
       - initial-setup-gui
       - lorax
-      # lorax-composer deprecated — osbuild-composer is its successor
       - osbuild-composer
       - pykickstart
       - livecd-tools
